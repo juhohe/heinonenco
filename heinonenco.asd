@@ -10,5 +10,8 @@
                #:parenscript
 	       #:css-lite)
   :components ((:file "package")
-               (:file "heinonenco")))
+	       (:file "page-helpers")
+               (:file "heinonenco")
+	       (:file "controller-js-code")
+	       (:file "controller-js-simple")))
 
