@@ -11,13 +11,15 @@
 	     (:title ,title)
 	     (:link :type "text/css"
 		    :rel "stylesheet"
-		    :href "style.css")
-	     (:script :type "text/javascript"
-		      :src "scripts/jquery-1.8.3.min.js"))
+		    :href "styles/style.css")
+	     (:link :type "text/css"
+		    :rel "stylesheet"
+		    :href "styles/jquery-ui.css"))
+	    
 	    (:body
+	     (:section
 	     (:header
 	      (:h1 "Juho A. Heinosen kotisivut")
-	      (:img :src "/img/lisplogo_128.png")
 	      (:nav
 	       (:ul
 		(:li (:a :href "/" "Etusivu"))
@@ -25,4 +27,8 @@
 		(:li (:a :href "js-canvas" "Javascript-canvas")))))
 	     ,@body
 	     (:script :type "text/javascript"
-		      :src "scripts/code.js")))))
+		      :src "scripts/jquery-1.9.1.js")
+	     (:script :type "text/javascript"
+		      :src "scripts/code.js")
+	     (:script :type "text/javascript"
+		      :src "scripts/jquery-ui.js"))))))
