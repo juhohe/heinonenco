@@ -14,7 +14,7 @@
 		    :href "styles/style.css")
 	     (:link :type "text/css"
 		    :rel "stylesheet"
-		    :href "styles/jquery-ui.css"))
+		    :href "styles/jquery-ui-1.10.2.custom.css"))
 	    
 	    (:body
 	     (:section
@@ -29,6 +29,8 @@
 	     (:script :type "text/javascript"
 		      :src "scripts/jquery-1.9.1.js")
 	     (:script :type "text/javascript"
-		      :src "scripts/code.js")
+		      :src "scripts/jquery-ui.js")
 	     (:script :type "text/javascript"
-		      :src "scripts/jquery-ui.js"))))))
+		      :src "scripts/ui.datepicker-fi.js")
+	     (:script :type "text/javascript"
+		      :src "scripts/code.js"))))))

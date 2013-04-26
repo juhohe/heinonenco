@@ -45,14 +45,6 @@
      (:p "Koetan vain opetella Lisp-ohjelmointia ja näillä sivuilla ajattelin
 harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
 
-(defun controller-js-canvas ()
-  (standard-page (:title "Javascript-treeni canvas")
-    (:article
-    (:h1 "Juhon Javascript-canvas-treenaussivu")
-     (:p "Koetan tällä sivulla vähän treenata Javascript-ohjelmointia
-käyttäen html5:n canvas-elementtiä. Käytän tässäkin Common Lispin 
-Parenscript-kirjastoa koodin tuottamiseen. Vielä en ole mitään laittanut tälle sivulle."))))
-
 (defun controller-404 ()
   (standard-page (:title "Virhe 404 - sivua ei löytynyt")
     (:article
