@@ -6,12 +6,15 @@
   :author "Juho Antti Heinonen <juho.heinonen@yap.fi>"
   :license "BSD License"
   :depends-on (#:hunchentoot
-	       #:cl-who
+               #:cl-who
                #:parenscript
-	       #:css-lite)
+               #:css-lite
+               #:ht-simple-ajax)
   :components ((:file "package")
-	       (:file "page-helpers")
                (:file "heinonenco")
-	       (:file "controller-js-code")
-	       (:file "controller-js-simple")))
+               (:file "page-helpers")
+               (:file "controller-js-code")
+               (:file "controller-js-simple")
+               (:file "controller-js-canvas")
+               (:file "controller-css")))
 

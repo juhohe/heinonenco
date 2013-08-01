@@ -67,4 +67,10 @@
 		    :padding "0em 1em 0em 1em"
 		    :margin-bottom "1em"))  
     (("article h1")
-     (:font-size "140%" :text-align "center")))))
+     (:font-size "140%" :text-align "center")))
+    
+    ((".dWordGame")
+     (:margin "0 auto 0 auto"))
+    
+    ((".dBoggle")
+     (:height "3em" :width "3em" :border-style "solid" :border-width "2px" :display "inline-block" padding "1em" font-size "14pt"))))
