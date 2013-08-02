@@ -42,9 +42,13 @@
       (cond 
 	((<= *count* 0) 
 	 (alert (stringify "Peli päättyi. Löysit " (length *found-words*) " sanaa ja sait " *points* " pistettä. Aloitetaan uusi peli, kun painat ok."))
-	 (chain ($ "#btnStartOver") (trigger "click")))
-	(t ((@ ($ "#sTimeLeft") html)
-	   (seconds-to-mm-ss *count*)))))
+;;	 (chain (window location reload)))))
+
+	 (chain (chain window location) (reload)))
+
+	;;  (chain ($ "#btnStartOver") (trigger "click")))
+	 (t ((@ ($ "#sTimeLeft") html)
+	    (seconds-to-mm-ss *count*)))))
 
     (defun mark-un-selectable (x y)
       ((chain ((chain (chain ($ ".dBoggle") remove-class)) "dBoggle") add-class) "boggleDisabled")
@@ -98,7 +102,10 @@
        (@ ($ "#btnStartOver") click)
        (lambda ()
 	 ((@ ($ "#dGotLetters") html) "")
+	 ((@ ($ "#sFoundWords") html) "")
+	 ((@ ($ "#sPoints") html) "")
 	 (clear-grid)
+	 (setf *points* 0)
 	 (setf *found-words* '())
 	 (setf *count* 180))))
     
