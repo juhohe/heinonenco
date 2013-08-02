@@ -125,7 +125,7 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
   (cond ((eq (hunchentoot:request-method*) :GET)
          (/ 0 0))
         ((eq (hunchentoot:request-method*) :POST)
-	 (setf (header-out "score") (check-word-score (post-parameter "triedWord"))))))
+	 (setf (header-out "score") (stringify (check-word-score (post-parameter "triedWord")))))))
 
 (defun check-word-score (word-to-check)
   (let ((analyses (voikko:with-instance (i)
