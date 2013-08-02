@@ -70,7 +70,10 @@
      (:font-size "140%" :text-align "center")))
     
     ((".dWordGame")
-     (:margin "0 auto 0 auto"))
+     (:margin "0 auto 0 auto" :display "inline-block"))
+
+    (("#dRightSide")
+     (:display "inline-block" :float "right"))
     
     ((".dBoggle, .boggleSelected, .boggleDisabled")
      (:height "3em" :width "3em" :border-style "solid" :border-width "2px" :display "inline-block" :padding "1em" :font-size "20pt"))
@@ -80,4 +83,10 @@
      (:background-color "rgb(20, 220, 20)"))
     ((".boggleDisabled")
      (:background-color "rgb(200, 200, 200)"))
+    (("button")
+     (:cursor "pointer"))
+    (("#btnStartOver")
+     (:float "right" :margin-right "5%"))	    
     ))
+
+

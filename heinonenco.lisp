@@ -108,18 +108,30 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
            (:div :id "dGotLetters" :style "display:block;")
            (:button :id "btnCheckWord" :style "display: inline"
                     "Tarkista sana")
-	   (:button :id "btnClearWord" :style "display: block;" "Tyhjennä valinta")
-	   (:span :id "lblTimeLeft" "aikaa jäljellä")
-	   (:span :id "sTimeLeft" :style "display:block;")
-           (loop for i from 0 to 3 do
-                (loop for j from 0 to 3 do
-                     (htm 
-                      (:div :id (stringify i "x" j) :class "dBoggle")))
-                (htm
-                 (:br)))
-	   (:span :id "sFoundWords" :style "display:inline;")
-	   (:span :id "sPoints" "0")
-     ))))
+	   (:button :id "btnClearWord" :style "display: inline;" "Tyhjennä valinta")
+
+	   (:button :id "btnStartOver" "Aloita uusi peli"))
+
+     (:div :id "dRightSide"
+	   (:div :id "dInstructions"
+		 "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta."
+		 ))
+
+     (:span :id "lblTimeLeft" "aikaa jäljellä")
+     (:span :id "sTimeLeft" :style "display:block;")
+     (loop for i from 0 to 3 do
+	  (loop for j from 0 to 3 do
+	       (htm 
+		(:div :data-x j :data-y i :class "dBoggle")))
+	  (htm
+	   (:br)))
+     (:span :id "sFoundWords" :style "display:inline; font-weight: Bold;")
+     (:span :id "sPoints" "0")
+     
+     )
+    
+
+    )))
 
 (defun controller-check-word ()
   (cond ((eq (hunchentoot:request-method*) :GET)
@@ -151,7 +163,7 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
 	
 	;; nouns, adjectives, and pronouns
 	(and
-	;; excluding proper nouns ("erisnimet" in Finnish)
+	 ;; excluding proper nouns ("erisnimet" in Finnish)
 	 ((lambda (word-class) 
 	    (not (equal (subseq word-class (- (length word-class) 4)) "nimi")))
 	  (cdr (assoc "CLASS" el :test #'string=)))
