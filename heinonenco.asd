@@ -9,10 +9,11 @@
                #:cl-who
                #:parenscript
                #:css-lite
-               #:ht-simple-ajax)
+	       #:voikko)
+;;               #:ht-simple-ajax)
   :components ((:file "package")
                (:file "heinonenco")
-               (:file "page-helpers")
+               ;; (:file "page-helpers")
                (:file "controller-js-code")
                (:file "controller-js-simple")
                (:file "controller-js-canvas")

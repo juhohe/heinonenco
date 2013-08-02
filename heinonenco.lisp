@@ -9,6 +9,42 @@
                                            :port 8888
                                            :document-root *application-path*
                                            :error-template-directory (stringify *application-path* "errors/")))
+
+(defmacro standard-page ((&key title) &body body)
+  `(with-html-output-to-string (*standard-output* nil :prologue t :indent t)
+     (:html :xmlns "http://www.w3.org/1999/xhtml"
+            :xml\:lang "fi" 
+            :lang "fi"
+            (:head 
+             (:meta :http-equiv "Content-Type" 
+                    :content    "text/html;charset=utf-8")
+             (:title ,title)
+             (:link :type "text/css"
+                    :rel "stylesheet"
+                    :href "styles/style.css")
+             (:link :type "text/css"
+                    :rel "stylesheet"
+                    :href "styles/jquery-ui-1.10.2.custom.css")
+             (:script :type "text/javascript"
+                      :src "scripts/jquery-1.9.1.js")
+             (:script :type "text/javascript"
+                      :src "scripts/jquery-ui.js")
+             (:script :type "text/javascript"
+                      :src "scripts/ui.datepicker-fi.js")
+             (:script :type "text/javascript"
+                      :src "scripts/code.js"))            
+            (:body
+             (:section
+              (:header
+               (:h1 "Juho A. Heinosen kotisivut")
+               (:nav
+                (:ul
+                 (:li (:a :href "/" "Etusivu"))
+                 (:li (:a :href "js-simple" "Javascript-simppelit"))
+                 (:li (:a :href "js-canvas" "Javascript-canvas"))
+                 (:li (:a :href "boggle-clone" "Sanapeli")))))
+              ,@body)))))
+
 ;;(defparameter *ajax-processor*
 ;;  (make-instance 'ht-simple-ajax:ajax-processor :server-uri "/ajax"))
 ;;  (make-instance 'ajax-processor :server-uri "/ajax"))
@@ -70,24 +106,54 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
      (:h1 "Sanapeli")
      (:div :id "dWordGame"
            (:div :id "dGotLetters" :style "display:block;")
-           (:button :id "btnCheckWord" :style "display: block;"
+           (:button :id "btnCheckWord" :style "display: inline"
                     "Tarkista sana")
+	   (:button :id "btnClearWord" :style "display: block;" "Tyhjennä valinta")
+	   (:span :id "lblTimeLeft" "aikaa jäljellä")
+	   (:span :id "sTimeLeft" :style "display:block;")
            (loop for i from 0 to 3 do
                 (loop for j from 0 to 3 do
                      (htm 
                       (:div :id (stringify i "x" j) :class "dBoggle")))
                 (htm
                  (:br)))
-
-           )
-     )))
+	   (:span :id "sFoundWords" :style "display:inline;")
+	   (:span :id "sPoints" "0")
+     ))))
 
 (defun controller-check-word ()
   (cond ((eq (hunchentoot:request-method*) :GET)
          (/ 0 0))
         ((eq (hunchentoot:request-method*) :POST)
+	 (setf (header-out "score") (check-word-score (post-parameter "triedWord"))))))
 
-         (with-open-file (stream "c:/testi/parametri.txt" :if-exists :supersede :direction :output)
-           (format stream 
-                   (post-parameter "triedWord"))))))
- 
+(defun check-word-score (word-to-check)
+  (let ((analyses (voikko:with-instance (i)
+		    (voikko:analyze i word-to-check))))
+    (if (is-word-accepted analyses)
+	(cond ((equal 3 (length word-to-check))
+	       1)
+	      ((equal 4 (length word-to-check))
+	       1)
+	      (t
+	       (- (length word-to-check) 3)))
+	0)))
+
+(defun is-word-accepted (analyses)
+  (loop for el in analyses when		    
+       (or
+	;; particles
+	(equal (cdr (assoc "CLASS" el :test #'string=)) "seikkasana")
+	
+	;; verbs (only non-personal verb forms are accepted
+	(and (equal (cdr (assoc "CLASS" el :test #'string=)) "teonsana")
+	     (equal (cdr (assoc "PERSON" el :test #'string=)) nil))
+	
+	;; nouns, adjectives, and pronouns
+	(and
+	;; excluding proper nouns ("erisnimet" in Finnish)
+	 ((lambda (word-class) 
+	    (not (equal (subseq word-class (- (length word-class) 4)) "nimi")))
+	  (cdr (assoc "CLASS" el :test #'string=)))
+	 (equal (cdr (assoc "SIJAMUOTO" el :test #'string=)) "nimento")))
+     return el))
