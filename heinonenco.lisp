@@ -131,7 +131,7 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
      )
     
 
-    )))
+    ))
 
 (defun controller-check-word ()
   (cond ((eq (hunchentoot:request-method*) :GET)
