@@ -41,11 +41,10 @@
       (setf *count* (1- *count*))
       (cond 
 	((<= *count* 0) 
-	 (alert (stringify "Peli päättyi. Löysit " (length *found-words*) " sanaa ja sait " *points* " pistettä. Aloitetaan uusi peli, kun painat ok."))
-;;	 (chain (window location reload)))))
-
+	 (alert (stringify "Peli päättyi. Löysit " (length *found-words*) " sanaa ja sait " *points* " pistettä. Aloitetaan uusi peli, kun painat ok."))	
+	 (setf *counter* ((@ window clear-interval) *counter*))
 	 (chain (chain window location) (reload)))
-
+	
 	;;  (chain ($ "#btnStartOver") (trigger "click")))
 	 (t ((@ ($ "#sTimeLeft") html)
 	    (seconds-to-mm-ss *count*)))))
@@ -100,14 +99,18 @@
     (defun boggleStartOverClickHandler ()
       (
        (@ ($ "#btnStartOver") click)
+;;	 (chain (chain window location) (reload)))
        (lambda ()
-	 ((@ ($ "#dGotLetters") html) "")
-	 ((@ ($ "#sFoundWords") html) "")
-	 ((@ ($ "#sPoints") html) "")
-	 (clear-grid)
-	 (setf *points* 0)
-	 (setf *found-words* '())
-	 (setf *count* 180))))
+	 (chain (chain window location) (reload)))))
+	 
+
+	 ;; ((@ ($ "#dGotLetters") html) "")
+	 ;; ((@ ($ "#sFoundWords") html) "")
+	 ;; ((@ ($ "#sPoints") html) "")
+	 ;; (clear-grid)
+	 ;; (setf *points* 0)
+	 ;; (setf *found-words* '())
+	 ;; (setf *count* 180))))
     
     
     (defun createBoggle()
@@ -123,9 +126,15 @@
       ((@ ($ "#btnCheckWord") click)
        (lambda ()
 	 (defvar triedWord ((@ ($ "#dGotLetters") html)))
-	 (if (find triedWord *found-words*)
-	     (progn (clear-grid)		 
+;;	 (if (eq (find triedWord *found-words*) t)
+	 (if (> ((chain *found-words* index-of) triedword) -1)
+	     (progn (clear-grid)
+		    ((chain ($ "#dGotLetters") empty))		       
 		    return))
+		
+	 ((@ (@ ($ "#btnCheckWord, #btnClearWord")) attr) "disabled" "disabled")
+	 ;; Setting game grid tiles' css to look like disabled.
+	 ((@ ((@ ($ ".boggleTile") remove-class) "dBoggle") add-class) "boggleDisabled")	 
 	 ((chain ((chain $ ajax) (create type "post" 
 					 url "check-word"
 					 data (create tried-word triedWord)))
@@ -136,7 +145,9 @@
 			    (chain ($ "#sFoundWords") (append triedWord ", "))
 			    (setf *points* (+ *points* (parse-int data)))
 			    ((chain ($ "#sPoints") html) *points*)
-			    (setf *found-words* (append *found-words* '(triedWord)))))
+			    (setf *found-words* (append *found-words* triedWord))))
+			 ((@ (@ ($ "#btnCheckWord, #btnClearWord")) remove-attr) "disabled")
+
 			 ((chain ($ "#dGotLetters") empty))		       
 			 (clear-grid))))))))
 ;; (t

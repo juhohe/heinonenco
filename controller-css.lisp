@@ -72,8 +72,10 @@
     ((".dWordGame")
      (:margin "0 auto 0 auto" :display "inline-block"))
 
+    (("#dGameGrid")
+     (:display "inline" :width "50%"))
     (("#dRightSide")
-     (:display "inline-block" :float "right"))
+     (:display "inline-block"))
     
     ((".dBoggle, .boggleSelected, .boggleDisabled")
      (:height "3em" :width "3em" :border-style "solid" :border-width "2px" :display "inline-block" :padding "1em" :font-size "20pt"))

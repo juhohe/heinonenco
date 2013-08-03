@@ -88,9 +88,9 @@
 (defun controller-main-page ()
   (standard-page (:title "Juho Antti Heinosen kotisivut")
     (:article
-     (:h1 "Tervetuloa uusille hienoille Lispillä tehdyille kotisivuilleni!")
+     (:h1 "Tervetuloa Lispillä tehdyille kotisivuilleni!")
      (:p "Koetan vain opetella Lisp-ohjelmointia ja näillä sivuilla ajattelin
-harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
+harjoitella sitä."))))
 
 (defun controller-404 ()
   (standard-page (:title "Virhe 404 - sivua ei löytynyt")
@@ -101,6 +101,8 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
          ))))
 
 (defun controller-boggle-clone ()
+  (defparameter *voikko* (voikko:initialize))
+
   (standard-page (:title "Sanapeli")
     (:article
      (:h1 "Sanapeli")
@@ -111,27 +113,21 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
 	   (:button :id "btnClearWord" :style "display: inline;" "Tyhjennä valinta")
 
 	   (:button :id "btnStartOver" "Aloita uusi peli"))
+     (:div :id "dGameGrid"
 
+	   (:span :id "lblTimeLeft" "aikaa jäljellä")
+	   (:span :id "sTimeLeft" :style "display:block;")
+	   (loop for i from 0 to 3 do
+		(loop for j from 0 to 3 do
+		     (htm 
+		      (:div :data-x j :data-y i :class "dBoggle boggleTile")))
+		(htm
+		 (:br)))
+	   (:span :id "sFoundWords" :style "display:inline; font-weight: Bold;")
+	   (:span :id "sPoints" "0"))
      (:div :id "dRightSide"
 	   (:div :id "dInstructions"
-		 "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta."
-		 ))
-
-     (:span :id "lblTimeLeft" "aikaa jäljellä")
-     (:span :id "sTimeLeft" :style "display:block;")
-     (loop for i from 0 to 3 do
-	  (loop for j from 0 to 3 do
-	       (htm 
-		(:div :data-x j :data-y i :class "dBoggle")))
-	  (htm
-	   (:br)))
-     (:span :id "sFoundWords" :style "display:inline; font-weight: Bold;")
-     (:span :id "sPoints" "0")
-     
-     )
-    
-
-    ))
+		 "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä.")))))
 
 (defun controller-check-word ()
   (cond ((eq (hunchentoot:request-method*) :GET)
@@ -140,8 +136,9 @@ harjoitella sitä. Tulikohan tämä teksti ruudulle?"))))
 	 (setf (header-out "score") (stringify (check-word-score (post-parameter "triedWord")))))))
 
 (defun check-word-score (word-to-check)
-  (let ((analyses (voikko:with-instance (i)
-		    (voikko:analyze i word-to-check))))
+  ;; (let ((analyses (voikko:with-instance (i)
+  ;; 		    (voikko:analyze i word-to-check))))
+  (let ((analyses (voikko:analyze *voikko* word-to-check)))
     (if (is-word-accepted analyses)
 	(cond ((equal 3 (length word-to-check))
 	       1)
