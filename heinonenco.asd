@@ -9,7 +9,8 @@
                #:cl-who
                #:parenscript
                #:css-lite
-	       #:voikko)
+	       #:voikko
+	       #:elephant)
 ;;               #:ht-simple-ajax)
   :components ((:file "package")
                (:file "heinonenco")
@@ -17,5 +18,6 @@
                (:file "controller-js-code")
                (:file "controller-js-simple")
                (:file "controller-js-canvas")
-               (:file "controller-css")))
+               (:file "controller-css")
+	       (:file "boggle-clone-js")))
 
