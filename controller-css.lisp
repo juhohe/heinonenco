@@ -88,7 +88,14 @@
     (("button")
      (:cursor "pointer"))
     (("#btnStartOver")
-     (:float "right" :margin-right "5%"))	    
-    ))
+     (:float "right" :margin-right "5%"))
+    (("#tblHighScores")
+     (:width "70%"))
+    (("#tblHighScores th")
+     (:text-align "left" :font-weight "Bold"))))
+  
+  
+
+
 
 
