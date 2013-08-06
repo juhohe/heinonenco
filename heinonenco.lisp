@@ -14,7 +14,7 @@
 (defparameter *elephant-store* (elephant:open-store '(:clsql (:sqlite3 "/home/juhohe/Documents/SharedSection/src/lisp/heinonenco/scores.db"))))
 
 					; Container for all our high scores
-(defvar *high-scores* (or (elephant:get-from-root "high-scores")
+(defparameter *high-scores* (or (elephant:get-from-root "high-scores")
 			  (let ((high-scores (elephant:make-pset)))
 			    (elephant:add-to-root "high-scores" high-scores)
 			    high-scores)))
@@ -188,20 +188,19 @@
 		"Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä."))
     
     (:div :id "dHighScores"
-	  (:h2 "Parhaat tulokset")
-	  (:table :id "tblHighScores"
-	   (:tr
-	    (:th "Nimi")
-	    (:th "Pisteet")
-	    (:th "Pisin sana")
-	    (:th "Ajankohta"))
-	   (loop for score-item in (get-10-highest-scores) do
-		(htm (:tr		      		      
-		     (:td (str (player-name score-item)))
-		     (:td (str (points score-item)))
-		     (:td (str (longest-word score-item)))
-		     (:td (str (get-formatted-time-from-universal-time (timestamp score-item)))))))))
-
+    	  (:h2 "Parhaat tulokset")
+    	  (:table :id "tblHighScores"
+    	   (:tr
+    	    (:th "Nimi")
+    	    (:th "Pisteet")
+    	    (:th "Pisin sana")
+    	    (:th "Ajankohta"))
+    	   (loop for score-item in (get-10-highest-scores) do
+    		(htm (:tr		      		      
+    		     (:td (str (player-name score-item)))
+    		     (:td (str (points score-item)))
+    		     (:td (str (longest-word score-item)))
+    		     (:td (str (get-formatted-time-from-universal-time (timestamp score-item)))))))))
 
     (:div :id "dialogScore" :style "display:none;"
 	  (:span :id "sDialogScore")
@@ -212,21 +211,21 @@
 		(:input :type "text" :name "player-name")
 		(:button :id "btnSaveHighScore" "OK"))))))
 
-
-
 (defun controller-save-high-score ()
+;;  (break)
   (with-open-file (stream  (merge-pathnames *application-path* "test.txt") :direction :output :if-exists :supersede)
     (format stream (post-parameter "playerName")))
   
   (cond ((eq (hunchentoot:request-method*) :POST)
 	 (save-high-score (post-parameter "points")
-			  (post-parameter "foundWords")
+			  (post-parameter "words")
 			  (post-parameter "playerName")))))
 
 (defun save-high-score (points found-words player-name)
+;;  (break)
   (elephant:insert-item (make-instance 'high-score 
-				       :points (parse-integer points)
-				       :player-name player-name 
+				       :points points
+				       :player-name player-name
 				       :longest-word (car (sort found-words #'(lambda (x y) (> (length x) (length y))))))  *high-scores*))
 
 ;;(car (sort found-words #'(lambda (x y) (> (length x) (length y))))))))))
