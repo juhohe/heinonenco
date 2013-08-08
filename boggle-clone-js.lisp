@@ -39,7 +39,11 @@
 
       
       (cond 
-	((> *points* 0)
+	((and 
+	  (> *points* 0)
+	  (or (= (chain ($ "#tdTenthScore") length) 0)
+	      (> (parse-int *points*) (parse-int (chain ($ "#tdTenthScore") (html))))))
+	  
 	 ((chain ($ "#btnOk") hide))
 	 ((chain ($ "#dGetNameForHighScore") show))
 	 ((chain ($ "[name='points']") val) *points*)

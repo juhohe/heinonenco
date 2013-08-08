@@ -267,10 +267,18 @@
 				(htm (:tr		      		      
 				      (:td (str (stringify position ".")))
 				      (:td (str (first score-item)))
-				      (:td (str (second score-item)))
+				      (:td 
+				       :id (if (= position 10) "tdTenthScore" "")
+;;					   (htm :id "tdTenthScore"))
+				       (str (second score-item)))
 				      (:td (str (third score-item)))
 				      (:td (str (get-formatted-time-from-universal-time (car (last score-item)))))))
-				(setq position (1+ position))))))
+				
+				
+
+				(setq position (1+ position))				
+				)			   
+			   )))
 
 	   (:div :id "dialogScore" :style "display:none;"
 		 (:span :id "sDialogScore")
