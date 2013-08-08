@@ -22,9 +22,13 @@
               :accessor timestamp
               :initform (get-universal-time))))
 
-(defparameter *db-spec* '(:clsql (:sqlite3 "scores.db")))
 
-(defparameter *elephant-store* (elephant:open-store *db-spec*))
+;;(clsql:start-sql-recording)
+
+(clsql:enable-sql-reader-syntax)
+
+;;(defparameter *db-spec* '(:clsql (:sqlite3 "scores.db")))
+;;(defparameter *elephant-store* (elephant:open-store *db-spec*))
 
 ;;(elephant:open-store *db-spec*)
 					; Container for all our high scores
@@ -123,33 +127,69 @@
      (:p :style "text-align: center;" "Palvelin ei löytänyt sivua osoitteesta, johon pyrit."
          (:img :src "/img/lisplogo_flag_128.png")))))
 
+;; (def-view-class header()
+;;   ((player-name :initarg :player-name
+;; 		:accessor player-name)
+;;    (points :initarg :points
+;; 	   :accessor points)
+;;    (longest-word :initarg :longest-word
+;; 		 :accessor longest-word
+;; 		 :initform "")
+;;    (timestamp :initarg :timestamp
+;;               :accessor timestamp
+;;               :initform (get-universal-time))))
+
 (defun get-10-highest-scores ()
-  (let ((sorted-scores	 
-	 (sort (copy-list (elephant:get-instances-by-class 'high-score))
-	       #'(lambda (x y)
-		   (if (not (numberp (points x)))
-		       (setf (points x) (or (parse-integer (points x) :junk-allowed t) 0)))
-		   (if (not (numberp (points y)))
-		       (setf (points y) (or (parse-integer (points y) :junk-allowed t) 0)))
-		   (> (points x) (points y))))))
-    (loop :repeat 10 :for score-item :in sorted-scores :collect score-item)))
+  ;;  (clsql:with-transaction ()
 
-  ;; (elephant:with-open-store (*db-spec*)
-  ;;   (elephant:get-instances-by-class 'high-score)))
-    
+  (or (clsql:connected-databases)
+      (clsql:connect "scores.db" :database-type :sqlite3))
+  
+  (let (( all-scores (clsql:select [player-name] [points] [longest-word] [timestamp] 
+					 :from [high-score]
+					 :flatp t)))
+  (clsql:disconnect :database "scores.db")
+  
+  (sort all-scores #'(lambda (x y)	
+		   (if (not (numberp (second x)))
+		       (setf (second x) (or (parse-integer (second x) :junk-allowed t) 0)))
+		   (if (not (numberp (second y)))
+		       (setf (second y) (or (parse-integer (second y) :junk-allowed t) 0)))
+		   (> (second x) (second y))))))
+
+  ;; (sort all-scores #'(lambda (x y) 
+  
+  ;; ))
+
+;; (let ((sorted-scores	 
+;; 	 (sort (copy-list (elephant:get-instances-by-class 'high-score))
+;; 	       #'(lambda (x y)
+;; 		   (if (not (numberp (points x)))
+;; 		       (setf (points x) (or (parse-integer (points x) :junk-allowed t) 0)))
+;; 		   (if (not (numberp (points y)))
+;; 		       (setf (points y) (or (parse-integer (points y) :junk-allowed t) 0)))
+;; 		   (> (points x) (points y))))))
+;;   (loop :repeat 10 :for score-item :in sorted-scores :collect score-item)))
+
+;; (elephant:with-open-store (*db-spec*)
+;;   (elephant:get-instances-by-class 'high-score)))
 
 
-  ;; (setq sorted-scores      
-  ;; 	(sort (elephant:get-instances-by-class 'high-score)
-  ;; 	      #'(lambda (x y)
-  ;; 		  (if (not (numberp (points x)))
-  ;; 		      (setf (points x) (parse-integer (points x))))
-  ;; 		  (if (not (numberp (points y)))
-  ;; 		      (setf (points y) (parse-integer (points y))))
-  ;; 		  (> (points x) (points y)))))
-  ;; (loop :repeat 10 :for score-item :in sorted-scores :collect score-item))
+
+;; (setq sorted-scores      
+;; 	(sort (elephant:get-instances-by-class 'high-score)
+;; 	      #'(lambda (x y)
+;; 		  (if (not (numberp (points x)))
+;; 		      (setf (points x) (parse-integer (points x))))
+;; 		  (if (not (numberp (points y)))
+;; 		      (setf (points y) (parse-integer (points y))))
+;; 		  (> (points x) (points y)))))
+;; (loop :repeat 10 :for score-item :in sorted-scores :collect score-item))
 
 (defun get-formatted-time-from-universal-time (timestamp)
+  (if (not (numberp timestamp))
+      (setf timestamp (parse-integer timestamp)))
+
   (multiple-value-bind
 	(second minute hour date month year day-of-week dst-p tz)
       (decode-universal-time timestamp)
@@ -184,13 +224,13 @@
 	   (:span :id "lblTimeLeft" "aikaa jäljellä")
 	   (:span :id "sTimeLeft" :style "display:block;" "3:00")
 	   (:table :id "tblBoggle"
-	    (loop for i from 0 to 3 
-	       do
-		 (htm (:tr
-		       (loop for j from 0 to 3 
-			  do
-			    (htm 
-			     (:td :data-x j :data-y i :class "dBoggle boggleTile")))))))
+		   (loop for i from 0 to 3 
+		      do
+			(htm (:tr
+			      (loop for j from 0 to 3 
+				 do
+				   (htm 
+				    (:td :data-x j :data-y i :class "dBoggle boggleTile")))))))
 	   
 	   (:br)
 
@@ -205,41 +245,41 @@
 		 (:h2 "Peliohjeet")
 		 (:p "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanoja kerätään siten, että valitaan napautetaan kirjaimia hiirellä vierekkäin sijaitsevia kirjaimia ja täten muodostetaan kirjaimista sanoja. Sana lähetetään tarkistettavaksi painamalla hiiren kakkos- tai kolmospainiketta tai klikkaamalla \"Tarkista sana\"-painiketta.")
 
-(:p "Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä."))
-     
-     (:div :id "dHighScores"
-	   (:h2 "Parhaat tulokset")
-	   (:table :id "tblHighScores"
-		   (:tr
-		    (:th)
-		    (:th "Nimi")
-		    (:th "Pisteet")
-		    (:th "Pisin sana")
-		    (:th "Ajankohta"))
-		   (let ((position 1))
-		     (loop for score-item in (get-10-highest-scores) do
-			  (htm (:tr		      		      
-				(:td (str (stringify position ".")))
-				(:td (str (player-name score-item)))
-				(:td (str (points score-item)))
-				(:td (str (longest-word score-item)))
-				(:td (str (get-formatted-time-from-universal-time (timestamp score-item))))))
-			  (setq position (1+ position))))))
+		 (:p "Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä."))
+	   
+	   (:div :id "dHighScores"
+		 (:h2 "Parhaat tulokset")
+		 (:table :id "tblHighScores"
+			 (:tr
+			  (:th)
+			  (:th "Nimi")
+			  (:th "Pisteet")
+			  (:th "Pisin sana")
+			  (:th "Ajankohta"))
+			 (let ((position 1))
+			   (loop for score-item in (get-10-highest-scores) do
+				(htm (:tr		      		      
+				      (:td (str (stringify position ".")))
+				      (:td (str (first score-item)))
+				      (:td (str (second score-item)))
+				      (:td (str (third score-item)))
+				      (:td (str (get-formatted-time-from-universal-time (car (last score-item)))))))
+				(setq position (1+ position))))))
 
-     (:div :id "dialogScore" :style "display:none;"
-	   (:span :id "sDialogScore")
-	   (:button :id "btnOk" "OK.")	   
-	   (:div :id "dGetNameForHighScore" :style "display:none;"	       
-;		 (:form :action "save-high-score" :method "post"
-			(:p "Onneksi olkoon! Pääsit kunniatauluun. Jos annat nimesi, tallennetaan tuloksesi top 10 -listaan.")
-			(:label :for "player-name" "Nimi: ")
-			(:input :type "text" :name "player-name")
-			(:button :id "btnSaveHighScore" "OK")))))))
-			;; (:input :type "text" :name "longest-word"
-			;; 	:style "display: none;")
-			;; (:input :type "text" :name "points"
-			;; 	:style "display: none;")
-			;; (:input :type "submit" :id "btnSaveHighScore")))))))
+	   (:div :id "dialogScore" :style "display:none;"
+		 (:span :id "sDialogScore")
+		 (:button :id "btnOk" "OK.")	   
+		 (:div :id "dGetNameForHighScore" :style "display:none;"	       
+					;		 (:form :action "save-high-score" :method "post"
+		       (:p "Onneksi olkoon! Pääsit kunniatauluun. Jos annat nimesi, tallennetaan tuloksesi top 10 -listaan.")
+		       (:label :for "player-name" "Nimi: ")
+		       (:input :type "text" :name "player-name")
+		       (:button :id "btnSaveHighScore" "OK")))))))
+;; (:input :type "text" :name "longest-word"
+;; 	:style "display: none;")
+;; (:input :type "text" :name "points"
+;; 	:style "display: none;")
+;; (:input :type "submit" :id "btnSaveHighScore")))))))
 
 (defun controller-save-high-score ()
   ;;  (break)
@@ -258,20 +298,40 @@
 			  (post-parameter "playerName")))))
 
 (defun save-high-score (points longest-word player-name)
-  ;; (signal points)
-  ;; (signal longest-word)
-  ;; (signal player-name)
-;;  (break)
+  (or (clsql:connected-databases)
+      (clsql:connect "scores.db" :database-type :sqlite3))
+  (defparameter new-id (1+ (or (car (clsql:select [max [id]] :from [high-score]	
+					   :flatp t))0)))
+  (defparameter row-timestamp (get-universal-time))
+  
+  (defparameter value-list (list new-id  player-name points longest-word row-timestamp))
 
-  ;;  (Elephant:with-open-store (*db-spec*) 
+  (clsql:insert-records :into [high-score]
+			:attributes '(id player_name points longest_word timestamp)
+			:values value-list)
+
+					;(timestamp (get-universal-time)))
+
+    
+
+    ;; (signal points)
+    ;; (signal longest-word)
+    ;; (signal new-id)
+    ;; (break)
+
+    ;; (clsql:insert-records :into [high-score]
+    ;; 			  :attributes '([id] [points] [player-name] [longest-word] [timestamp])
+    ;; 			  :values '(5 points player-name longest-word timestamp)))
+    (clsql:disconnect :database "scores.db")))
+;;  (Elephant:with-open-store (*db-spec*) 
   
 ;;  (elephant:with-open-store (*db-spec*)
     
-  (elephant:with-transaction ()
-    (make-instance 'high-score 
-		   :points points
-		   :player-name player-name
-		   :longest-word longest-word)))
+  ;; (elephant:with-transaction ()
+  ;;   (make-instance 'high-score 
+  ;; 		   :points points
+  ;; 		   :player-name player-name
+  ;; 		   :longest-word longest-word)))
 ;;       (elephant:insert-item score-item *high-scores*))   
 
 ;; (elephant:with-transaction ()

@@ -10,7 +10,8 @@
                #:parenscript
                #:css-lite
 	       #:voikko
-	       #:elephant)
+	       #:elephant
+	       #:clsql)
 ;;               #:ht-simple-ajax)
   :components ((:file "package")
                (:file "heinonenco")
