@@ -10,14 +10,28 @@
                                            :document-root *application-path*
                                            :error-template-directory (stringify *application-path* "errors/")))
 
-(defparameter *db-file-path* (merge-pathnames *application-path* "scores.db"))
-(defparameter *elephant-store* (elephant:open-store '(:clsql (:sqlite3 "/home/juhohe/Documents/SharedSection/src/lisp/heinonenco/scores.db"))))
+(elephant:defpclass high-score ()
+  ((player-name :initarg :player-name
+		:accessor player-name)
+   (points :initarg :points
+	   :accessor points)
+   (longest-word :initarg :longest-word
+		 :accessor longest-word
+		 :initform "")
+   (timestamp :initarg :timestamp
+              :accessor timestamp
+              :initform (get-universal-time))))
 
+(defparameter *db-spec* '(:clsql (:sqlite3 "scores.db")))
+
+(defparameter *elephant-store* (elephant:open-store *db-spec*))
+
+;;(elephant:open-store *db-spec*)
 					; Container for all our high scores
-(defparameter *high-scores* (or (elephant:get-from-root "high-scores")
-			  (let ((high-scores (elephant:make-pset)))
-			    (elephant:add-to-root "high-scores" high-scores)
-			    high-scores)))
+;; (defparameter *high-scores* (or (elephant:get-from-root "high-scores")
+;; 			  (let ((high-scores (elephant:make-pset)))
+;; 			    (elephant:add-to-root "high-scores" high-scores)
+;; 			    high-scores)))
 
 (defmacro standard-page ((&key title page-scripts) &body body)
   `(with-html-output-to-string (*standard-output* nil :prologue t :indent t)
@@ -109,42 +123,45 @@
      (:p :style "text-align: center;" "Palvelin ei löytänyt sivua osoitteesta, johon pyrit."
          (:img :src "/img/lisplogo_flag_128.png")))))
 
-(elephant:defpclass high-score ()
-  ((player-name :initarg :player-name
-		:accessor player-name)
-   (points :initarg :points
-	   :accessor points)
-   (longest-word :initarg :longest-word
-		 :accessor longest-word
-		 :initform "")
-   (timestamp :initarg :timestamp
-              :accessor timestamp
-              :initform (get-universal-time))))
-
 (defun get-10-highest-scores ()
-  (let ((all-scores 
-	 (sort (copy-list (elephant:pset-list *high-scores*))
+  (let ((sorted-scores	 
+	 (sort (copy-list (elephant:get-instances-by-class 'high-score))
 	       #'(lambda (x y)
 		   (if (not (numberp (points x)))
-		       (setf (points x) (parse-integer (points x))))
+		       (setf (points x) (or (parse-integer (points x) :junk-allowed t) 0)))
 		   (if (not (numberp (points y)))
-		       (setf (points y) (parse-integer (points y))))
-		   (> (points x) (points y))))))       
-    (loop :repeat 10 :for score-item :in all-scores :collect score-item)))
+		       (setf (points y) (or (parse-integer (points y) :junk-allowed t) 0)))
+		   (> (points x) (points y))))))
+    (loop :repeat 10 :for score-item :in sorted-scores :collect score-item)))
+
+  ;; (elephant:with-open-store (*db-spec*)
+  ;;   (elephant:get-instances-by-class 'high-score)))
+    
+
+
+  ;; (setq sorted-scores      
+  ;; 	(sort (elephant:get-instances-by-class 'high-score)
+  ;; 	      #'(lambda (x y)
+  ;; 		  (if (not (numberp (points x)))
+  ;; 		      (setf (points x) (parse-integer (points x))))
+  ;; 		  (if (not (numberp (points y)))
+  ;; 		      (setf (points y) (parse-integer (points y))))
+  ;; 		  (> (points x) (points y)))))
+  ;; (loop :repeat 10 :for score-item :in sorted-scores :collect score-item))
 
 (defun get-formatted-time-from-universal-time (timestamp)
   (multiple-value-bind
 	(second minute hour date month year day-of-week dst-p tz)
       (decode-universal-time timestamp)
     (format t "~d.~d.~d ~d:~2,'0d:~2,'0d"
-	      date
-	      month
-	      year
-	      hour
-	      minute
-	      second)))
+	    date
+	    month
+	    year
+	    hour
+	    minute
+	    second)))
 
-	
+
 (defun controller-boggle-clone ()
   ;; Open the store where our data is stored
 
@@ -152,20 +169,21 @@
     (:article
      (:h1 "Sanapeli")
      (:div :id "dWordGameControls"
-           (:button :id "btnCheckWord" :style "display: inline"
+           (:button :id "btnCheckWord" :class "boggleControl" :style "display: inline"
                     "Tarkista sana")
-	   (:button :id "btnClearWord" "Tyhjennä valinta")
+	   (:button :id "btnClearWord" :class "boggleControl"  "Tyhjennä valinta")
+	   (:button :id "btnEndGame" "Lopeta peli etuajassa")
 
-	   (:button :id "btnStartOver" "Aloita uusi peli")
+	   (:button :id "btnStartOver" :class "boggleControl" "Aloita uusi peli")
 	   (:br)
 	   (:span :id "dGotLettersLabel" :style "display:inline;" "Valitut kirjaimet: ")
 	   (:div :id "dGotLetters" :style "display:inline-block;"))
-   
+     
      (:div :id "dGameGrid"
 
 	   (:span :id "lblTimeLeft" "aikaa jäljellä")
 	   (:span :id "sTimeLeft" :style "display:block;" "3:00")
-	   (:table 
+	   (:table :id "tblBoggle"
 	    (loop for i from 0 to 3 
 	       do
 		 (htm (:tr
@@ -182,51 +200,88 @@
 		  "Pisteet: ")
 	   (:span :id "sPoints" "0"))
 
-    (:div :id "dRightSide"
-	  (:div :id "dInstructions"
-		(:h2 "Peliohjeet")
-		"Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä."))
-    
-    (:div :id "dHighScores"
-    	  (:h2 "Parhaat tulokset")
-    	  (:table :id "tblHighScores"
-    	   (:tr
-    	    (:th "Nimi")
-    	    (:th "Pisteet")
-    	    (:th "Pisin sana")
-    	    (:th "Ajankohta"))
-    	   (loop for score-item in (get-10-highest-scores) do
-    		(htm (:tr		      		      
-    		     (:td (str (player-name score-item)))
-    		     (:td (str (points score-item)))
-    		     (:td (str (longest-word score-item)))
-    		     (:td (str (get-formatted-time-from-universal-time (timestamp score-item)))))))))
+     (:div :id "dRightSide"
+	   (:div :id "dInstructions"
+		 (:h2 "Peliohjeet")
+		 (:p "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanoja kerätään siten, että valitaan napautetaan kirjaimia hiirellä vierekkäin sijaitsevia kirjaimia ja täten muodostetaan kirjaimista sanoja. Sana lähetetään tarkistettavaksi painamalla hiiren kakkos- tai kolmospainiketta tai klikkaamalla \"Tarkista sana\"-painiketta.")
 
-    (:div :id "dialogScore" :style "display:none;"
-	  (:span :id "sDialogScore")
-	  (:button :id "btnOk" "OK.")
-	  (:div :id "dGetNameForHighScore" :style "display:none;"
-		(:p "Onneksi olkoon! Pääsit kunniatauluun. Jos annat nimesi, tallennetaan tuloksesi top 10 -listaan.")
-		(:label :for "player-name" "Nimi: ")
-		(:input :type "text" :name "player-name")
-		(:button :id "btnSaveHighScore" "OK"))))))
+(:p "Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä."))
+     
+     (:div :id "dHighScores"
+	   (:h2 "Parhaat tulokset")
+	   (:table :id "tblHighScores"
+		   (:tr
+		    (:th)
+		    (:th "Nimi")
+		    (:th "Pisteet")
+		    (:th "Pisin sana")
+		    (:th "Ajankohta"))
+		   (let ((position 1))
+		     (loop for score-item in (get-10-highest-scores) do
+			  (htm (:tr		      		      
+				(:td (str (stringify position ".")))
+				(:td (str (player-name score-item)))
+				(:td (str (points score-item)))
+				(:td (str (longest-word score-item)))
+				(:td (str (get-formatted-time-from-universal-time (timestamp score-item))))))
+			  (setq position (1+ position))))))
+
+     (:div :id "dialogScore" :style "display:none;"
+	   (:span :id "sDialogScore")
+	   (:button :id "btnOk" "OK.")	   
+	   (:div :id "dGetNameForHighScore" :style "display:none;"	       
+;		 (:form :action "save-high-score" :method "post"
+			(:p "Onneksi olkoon! Pääsit kunniatauluun. Jos annat nimesi, tallennetaan tuloksesi top 10 -listaan.")
+			(:label :for "player-name" "Nimi: ")
+			(:input :type "text" :name "player-name")
+			(:button :id "btnSaveHighScore" "OK")))))))
+			;; (:input :type "text" :name "longest-word"
+			;; 	:style "display: none;")
+			;; (:input :type "text" :name "points"
+			;; 	:style "display: none;")
+			;; (:input :type "submit" :id "btnSaveHighScore")))))))
 
 (defun controller-save-high-score ()
-;;  (break)
-  (with-open-file (stream  (merge-pathnames *application-path* "test.txt") :direction :output :if-exists :supersede)
-    (format stream (post-parameter "playerName")))
+  ;;  (break)
+  ;; (with-open-file (stream  (merge-pathnames *application-path* "test.txt") :direction :output :if-exists :supersede)
+  ;; (format stream (post-parameter "player-name")))
+  ;; (signal (post-parameter "points"))
+  ;; (signal (post-parameter "longestWord"))
+  ;; (signal (post-parameter "playerName"))
+
+
+  ;;(break)
   
   (cond ((eq (hunchentoot:request-method*) :POST)
 	 (save-high-score (post-parameter "points")
-			  (post-parameter "words")
+			  (post-parameter "longestWord")
 			  (post-parameter "playerName")))))
 
-(defun save-high-score (points found-words player-name)
+(defun save-high-score (points longest-word player-name)
+  ;; (signal points)
+  ;; (signal longest-word)
+  ;; (signal player-name)
 ;;  (break)
-  (elephant:insert-item (make-instance 'high-score 
-				       :points points
-				       :player-name player-name
-				       :longest-word (car (sort found-words #'(lambda (x y) (> (length x) (length y))))))  *high-scores*))
+
+  ;;  (Elephant:with-open-store (*db-spec*) 
+  
+;;  (elephant:with-open-store (*db-spec*)
+    
+  (elephant:with-transaction ()
+    (make-instance 'high-score 
+		   :points points
+		   :player-name player-name
+		   :longest-word longest-word)))
+;;       (elephant:insert-item score-item *high-scores*))   
+
+;; (elephant:with-transaction ()
+;;   (setq score-item (make-instance 'high-score 
+;; 				    :points points
+;; 				    :player-name player-name
+;; 				    :longest-word longest-word))
+;;   (elephant:insert-item score-item *high-scores*)))
+
+					;(car (sort found-words #'(lambda (x y) (> (length x) (length y))))))  *high-scores*))
 
 ;;(car (sort found-words #'(lambda (x y) (> (length x) (length y))))))))))
 ;; (score-item (make-instance 'high-score 
@@ -261,7 +316,7 @@
 	
 	;; verbs (only non-personal verb forms are accepted
 	(and (equal (cdr (assoc "CLASS" el :test #'string=)) "teonsana")
-	     (equal (cdr (assoc "PERSON" el :test #'string=)) nil))
+	     (null (cdr (assoc "PERSON" el :test #'string=))))
 	
 	;; nouns, adjectives, and pronouns
 	(and
@@ -269,5 +324,7 @@
 	 ((lambda (word-class) 
 	    (not (equal (subseq word-class (- (length word-class) 4)) "nimi")))
 	  (cdr (assoc "CLASS" el :test #'string=)))
-	 (equal (cdr (assoc "SIJAMUOTO" el :test #'string=)) "nimento")))
+	 (equal (cdr (assoc "SIJAMUOTO" el :test #'string=)) "nimento")
+	 (null (cdr (assoc "FOCUS" el :test #'string=)))	 
+	 (null (cdr (assoc "POSSESSIVE" el :test #'string=)))))
      return el))
