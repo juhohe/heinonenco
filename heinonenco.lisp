@@ -154,12 +154,14 @@
   ;; 					 :flatp t)))
   (clsql:disconnect :database "scores.db")
   
-  (sort all-scores #'(lambda (x y)	
+  (setf all-scores (sort all-scores #'(lambda (x y)	
 		   (if (not (numberp (second x)))
 		       (setf (second x) (or (parse-integer (second x) :junk-allowed t) 0)))
 		   (if (not (numberp (second y)))
 		       (setf (second y) (or (parse-integer (second y) :junk-allowed t) 0)))
-		   (> (second x) (second y))))))
+		   (> (second x) (second y)))))
+
+  (loop :repeat 10 :for score-item :in all-scores :collect score-item)))
 
   ;; (sort all-scores #'(lambda (x y) 
   
@@ -379,21 +381,20 @@
 
 (defun is-word-accepted (analyses)
   (loop for el in analyses when		    
-       (or
+       (let ((word-class (cdr (assoc "CLASS" el :test #'string=))))
+       (or	       
 	;; particles
-	(equal (cdr (assoc "CLASS" el :test #'string=)) "seikkasana")
+	(equal word-class "seikkasana")
+	(equal word-class "sidesana")
 	
 	;; verbs (only non-personal verb forms are accepted
-	(and (equal (cdr (assoc "CLASS" el :test #'string=)) "teonsana")
-	     (null (cdr (assoc "PERSON" el :test #'string=))))
-	
+	(and (equal word-class "teonsana")
+	     (null (cdr (assoc "PERSON" el :test #'string=))))	
 	;; nouns, adjectives, and pronouns
 	(and
 	 ;; excluding proper nouns ("erisnimet" in Finnish)
-	 ((lambda (word-class) 
-	    (not (equal (subseq word-class (- (length word-class) 4)) "nimi")))
-	  (cdr (assoc "CLASS" el :test #'string=)))
+	 (not (equal (subseq word-class (- (length word-class) 4)) "nimi"))
 	 (equal (cdr (assoc "SIJAMUOTO" el :test #'string=)) "nimento")
 	 (null (cdr (assoc "FOCUS" el :test #'string=)))	 
-	 (null (cdr (assoc "POSSESSIVE" el :test #'string=)))))
+	 (null (cdr (assoc "POSSESSIVE" el :test #'string=))))))
      return el))

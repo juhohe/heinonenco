@@ -4,7 +4,7 @@
 
 (defun boggle-clone-js ()
   (ps
-    (defvar *dice* (random-shuffle '("aaeeen" "aaglää" "ahkops" "hikmnu" "akmitv" "ajoott" "nistäö" "aiklvy" "eiosst" "eimotu" "alnnru" "afknps" "abijsu" "eeinsu" "deilrs" "elrtty")))
+    (defvar *dice* (random-shuffle '("AAEEEN" "AAGLÄÄ" "AHKOPS" "HIKMNU" "AKMITV" "AJOOTT" "NISTÄÖ" "AIKLVY" "EIOSST" "EIMOTU" "ALNNRU" "AFKNPS" "ABIJSU" "EEINSU" "DEILRS" "ELRTTY")))
     (defvar *count* 180)
     (defvar *counter* (set-timeout timer 1000))
     (defvar *points* 0)
@@ -21,7 +21,6 @@
 	  (setf n (1- n))))
       randomized)
     
-
     (defun seconds-to-mm-ss (time-in-seconds)
       (defvar minutes (floor (/ *count* 60)))
       (defvar seconds (- time-in-seconds (* 60 minutes)))
@@ -29,7 +28,12 @@
 
     (defun show-score-dialog ()
       ((chain ($ "#sDialogScore") html)
-       (stringify "Peli päättyi. Löysit "(length *found-words*) " sana" (if (= length *found-words* 1)  "n" "a") " ja sait " *points* " piste" (if (= *points* 1) "en" "ttä") ". Aloitetaan uusi peli, kun painat OK."))
+       (stringify "Peli päättyi. Löysit " 
+		  (length *found-words*) 
+		  " sana" (if (= (length *found-words*) 1)  "n" "a") 
+		  " ja sait " *points* 
+		  " piste" (if (= *points* 1) "en" "ttä") 
+		  ". Aloitetaan uusi peli, kun painat OK."))
       
       ;; (format nil "Peli päättyi. Löysit ~d sana~:*~[a~;n~:;a~] ja sait ~d piste~:*~[ttä~;en~:;ttä~]. Aloitetaan uusi peli, kun painat OK." (length *found-words*) *points*))
 
@@ -144,7 +148,7 @@
 	 (lambda (event ui)
 	   (setf *counter* ((@ window clear-timeout) *counter*))
 
-	   (set-timeout reload-window 2000))))
+	   (set-timeout reload-window 1000))))
 
       (defun reload-window ()
 	(chain (chain window location) (reload)))      

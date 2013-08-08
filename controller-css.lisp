@@ -78,7 +78,7 @@
      (:display "inline-block"))
     
     ((".dBoggle, .boggleSelected, .boggleDisabled")
-     (:height "3em" :width "3em" :border-style "solid" :border-width "2px" :display "inline-block" :padding "1em" :font-size "20pt"))
+     (:height "1.3em" :width "1.3em" :border-style "solid" :border-width "2px" :display "inline-block" :padding "1em" :font-size "25pt"))
     ((".dBoggle:hover")
      (:cursor "pointer" :background-color "rgb(10, 30, 200)"))
     ((".boggleSelected")
