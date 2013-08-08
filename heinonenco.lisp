@@ -142,12 +142,16 @@
 (defun get-10-highest-scores ()
   ;;  (clsql:with-transaction ()
 
+  (clsql:enable-sql-reader-syntax)
+
   (or (clsql:connected-databases)
       (clsql:connect "scores.db" :database-type :sqlite3))
+
+  (let (( all-scores (clsql:query "select player_name, points, longest_word, timestamp from high_score")))
   
-  (let (( all-scores (clsql:select [player-name] [points] [longest-word] [timestamp] 
-					 :from [high-score]
-					 :flatp t)))
+  ;; (let (( all-scores (clsql:select [player-name] [points] [longest-word] [timestamp] 
+  ;; 					 :from [high-score]
+  ;; 					 :flatp t)))
   (clsql:disconnect :database "scores.db")
   
   (sort all-scores #'(lambda (x y)	
@@ -300,15 +304,20 @@
 (defun save-high-score (points longest-word player-name)
   (or (clsql:connected-databases)
       (clsql:connect "scores.db" :database-type :sqlite3))
-  (defparameter new-id (1+ (or (car (clsql:select [max [id]] :from [high-score]	
-					   :flatp t))0)))
+  ;; (defparameter new-id (1+ (or (car (clsql:select [max [id]] :from [high-score]	
+  ;; 					   :flatp t))0)))
+
+  (defparameter new-id (1+ (or (car (clsql:query "select max(id) from high_score" :flatp t)) 0)))
+
   (defparameter row-timestamp (get-universal-time))
   
   (defparameter value-list (list new-id player-name points longest-word row-timestamp))
 
-  (clsql:insert-records :into [high-score]
-			:attributes '(id player_name points longest_word timestamp)
-			:values value-list)
+  (clsql:execute-command (format nil "insert into high_score (id, player_name, points, longest_word, timestamp) values (~d, '~a', ~d, '~a', '~a')" new-id player-name points longest-word row-timestamp))
+  
+  ;; (clsql:insert-records :into [high-score]
+  ;; 			:attributes '(id player_name points longest_word timestamp)
+  ;; 			:values value-list)
 
 					;(timestamp (get-universal-time)))
 
