@@ -304,7 +304,7 @@
 					   :flatp t))0)))
   (defparameter row-timestamp (get-universal-time))
   
-  (defparameter value-list (list new-id  player-name points longest-word row-timestamp))
+  (defparameter value-list (list new-id player-name points longest-word row-timestamp))
 
   (clsql:insert-records :into [high-score]
 			:attributes '(id player_name points longest_word timestamp)
@@ -322,7 +322,7 @@
     ;; (clsql:insert-records :into [high-score]
     ;; 			  :attributes '([id] [points] [player-name] [longest-word] [timestamp])
     ;; 			  :values '(5 points player-name longest-word timestamp)))
-    (clsql:disconnect :database "scores.db")))
+    (clsql:disconnect :database "scores.db"))
 ;;  (Elephant:with-open-store (*db-spec*) 
   
 ;;  (elephant:with-open-store (*db-spec*)
