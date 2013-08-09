@@ -11,14 +11,18 @@
                #:css-lite
 	       #:voikko
 	       #:elephant
-	       #:clsql)
+	       #:clsql
+	       #:cl-libxml2)
 ;;               #:ht-simple-ajax)
   :components ((:file "package")
                (:file "heinonenco")
                ;; (:file "page-helpers")
                (:file "controller-js-code")
-               (:file "controller-js-simple")
-               (:file "controller-js-canvas")
+               ;; (:file "controller-js-simple")
+               ;; (:file "controller-js-canvas")
+
+	       (:file "grammatical-case-game")
+
                (:file "controller-css")
 	       (:file "boggle-clone-js")))
 

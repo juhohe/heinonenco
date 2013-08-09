@@ -107,11 +107,13 @@
        (create-regex-dispatcher "^/scripts/code.js" 'controller-js-code)
        (create-regex-dispatcher "^/scripts/boggle-clone.js" 'boggle-clone-js)
        (create-regex-dispatcher "^/$" 'controller-main-page)
-       (create-regex-dispatcher "^/js-simple" 'controller-js-simple)
-       (create-regex-dispatcher "^/js-canvas" 'controller-js-canvas)
+       ;; (create-regex-dispatcher "^/js-simple" 'controller-js-simple)
+       ;; (create-regex-dispatcher "^/js-canvas" 'controller-js-canvas)
        (create-regex-dispatcher "^/boggle-clone" 'controller-boggle-clone)
        (create-regex-dispatcher "^/check-word" 'controller-check-word)
-       (create-regex-dispatcher "^/save-high-score" 'controller-save-high-score)))
+       (create-regex-dispatcher "^/save-high-score" 'controller-save-high-score)
+       (create-regex-dispatcher "^/grammatical-case-game" 'controller-grammatical-case-game)))
+       
 ;;      (ht-simple-ajax:create-ajax-dispatcher *ajax-processor*)))
 
 (defun controller-main-page ()
@@ -249,9 +251,9 @@
      (:div :id "dRightSide"
 	   (:div :id "dInstructions"
 		 (:h2 "Peliohjeet")
-		 (:p "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanoja kerätään siten, että valitaan napautetaan kirjaimia hiirellä vierekkäin sijaitsevia kirjaimia ja täten muodostetaan kirjaimista sanoja. Sana lähetetään tarkistettavaksi painamalla hiiren kakkos- tai kolmospainiketta tai klikkaamalla \"Tarkista sana\"-painiketta.")
+		 (:p "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanoja kerätään siten, että valitaan hiirellä napauttamalla vierekkäin sijaitsevia kirjaimia ja täten muodostetaan kirjaimista sanoja. Sana lähetetään tarkistettavaksi painamalla hiiren kakkos- tai kolmospainiketta tai klikkaamalla \"Tarkista sana\"-painiketta.")
 
-		 (:p "Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä."))
+		 (:p "Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä. Useimmat partikkelit hyväksytään. Huudahdussanoja (esim. \"seis\" ja \"morjens\" ei hyväksytä."))
 	   
 	   (:div :id "dHighScores"
 		 (:h2 "Parhaat tulokset")
@@ -392,6 +394,7 @@
        (let ((word-class (cdr (assoc "CLASS" el :test #'string=))))
        (or	       
 	;; particles
+	(equal word-class "suhdesana")
 	(equal word-class "seikkasana")
 	(equal word-class "sidesana")
 	
