@@ -21,6 +21,7 @@
                ;; (:file "controller-js-simple")
                ;; (:file "controller-js-canvas")
 
+	       (:file "boggle-clone")
 	       (:file "grammatical-case-game")
 
                (:file "controller-css")
