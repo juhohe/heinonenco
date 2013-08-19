@@ -22,7 +22,7 @@
                ;; (:file "controller-js-canvas")
 
 	       (:file "boggle-clone")
-	       (:file "grammatical-case-game")
+;;	       (:file "grammatical-case-game")
 
                (:file "controller-css")
 	       (:file "boggle-clone-js")))
