@@ -94,9 +94,10 @@
     (("#tblHighScores th")
      (:text-align "left" :font-weight "Bold"))
     (("#sDialogScore span")
-     (:width "300px" :white-space "normal"))))
-    ;; (("#sDialogScore p")
-    ;;  (:width "300px" :white-space "nowrap"))))
+     (:width "300px" :white-space "normal"))
+    (("button :disabled")
+     (:cursor "default"))))
+
 
   
   
