@@ -1,5 +1,7 @@
 (in-package :heinonenco)
 
+;;(defparameter *voikko* (voikko:initialize))
+
 (defun get-formatted-time-from-universal-time (timestamp)
   (if (not (numberp timestamp))
       (setf timestamp (parse-integer timestamp)))
@@ -132,33 +134,46 @@
 
   (clsql:execute-command (format nil "insert into high_score (id, player_name, points, longest_word, timestamp) values (~d, '~a', ~d, '~a', '~a')" new-id player-name points longest-word row-timestamp))
   
-  ;; (clsql:insert-records :into [high-score]
-  ;; 			:attributes '(id player_name points longest_word timestamp)
-  ;; 			:values value-list)
 
-					;(timestamp (get-universal-time)))
-
-  
-
-  ;; (signal points)
-  ;; (signal longest-word)
-  ;; (signal new-id)
-  ;; (break)
-
-  ;; (clsql:insert-records :into [high-score]
-  ;; 			  :attributes '([id] [points] [player-name] [longest-word] [timestamp])
-  ;; 			  :values '(5 points player-name longest-word timestamp)))
   (clsql:disconnect :database "scores.db"))
 
 (defun controller-check-word ()
-  (cond ((eq (hunchentoot:request-method*) :POST)	
-	 (setf (header-out "score") (string (check-word-score (post-parameter "triedWord")))))))
+  (cond ((eq (hunchentoot:request-method*) :POST)
+	 (setf (header-out "score") (stringify (check-word-score (post-parameter "triedWord")))))))
+
+(defun controller-computer-score ()
+  (cond ((eq (hunchentoot:request-method*) :POST)
+	 (let ((computer-results
+		(check-computer-score (post-parameter "gridString"))))
+	   (setf (header-out "score") 
+		 (format nil "[~{\"~a\"~^, ~}]" computer-results))))))
+			 ;;(stringify computer-results))))))
+
+(defun check-computer-score (grid-as-string)
+  (check-multiple-words 
+   (remove-duplicates (find-words-automatically grid-as-string) :test #'equal)))
+
+(defun check-multiple-words (words-to-check)  
+  (let ((accepted-words '())
+	(total-score 0))    
+    (loop for word in words-to-check
+       do
+	 (let ((score (check-word-score word)))
+	   (cond ((> score 0)
+		  (incf total-score score)
+		  (push word accepted-words)))))
+    (append (list total-score) accepted-words)))
+		
+
+;;  (loop for word in words-to-check
+     ;;sum (check-word-score word)))
 
 (defun check-word-score (word-to-check)
-  (defparameter *voikko* (voikko:initialize))
-  ;; (let ((analyses (voikko:with-instance (i)
-  ;; 		    (voikko:analyze i word-to-check))))
-  (let ((analyses (voikko:analyze *voikko* word-to-check)))
+  (let ((analyses (voikko:with-instance (i)
+  		    (voikko:analyze i word-to-check))))
+
+;;    (break)
+;;  (let ((analyses (voikko:analyze *voikko* word-to-check)))
     (if (is-word-accepted analyses)
 	(cond ((equal 3 (length word-to-check))
 	       1)
@@ -193,78 +208,108 @@
   (let ((dimension-x (array-dimension grid 0))
 	(dimension-y (array-dimension grid 1))
 	(free-spots '()))
-    (loop for a in (list (1- i) i (1+ i)) do
-	 (loop for b in (list (1- j) j (1+ j))	      
+    ;; (loop for a in (list (1- i) i (1+ i)) do
+    ;; 	 (loop for b in (list (1- j) j (1+ j))	      
+
+    (loop for a from (1- i) upto (1+ i) do
+	 (loop for b from (1- j) upto (1+ j)
 	    when (and (>= a 0) (< a dimension-x)
 		      (>= b 0) (< b dimension-y)
 		      (null (member (cons a b) reserved-spots :test #'equal)))
-;;		      (aref grid a b))
-
 	      do (push (cons a b) free-spots)))
     free-spots))
+	      
+	    ;;collect (cons a b)))
+	 
+;;       do (push (cons a b) free-spots)))
+;;  free-spots)
 
 ;;collect (cons i j)))))
            
+(defun impossible-word-start-p (word)
+  (let ((front-vowels '(#\a #\o #\u))
+	(back-vowels '(#\y #\ä #\ö))
+	(word-as-array (split-string-to-char-list word)))
+    (and
+     (some (lambda (c)
+	     (find c front-vowels))
+	   word-as-array)
+     (some (lambda (c)
+	     (find c back-vowels))
+	   word-as-array))))
   
 (defun get-possible-words (grid i j reserved-spots letters-this-far)  
-  ;;(print (aref grid i j))
+;;  (break)
+;;  (print "here")
   (let ((current-letter (aref grid i j))
-	(combinated-words '())      
-	(free-spots '()));; (get-free-spots grid i j)))  
-    ;; marking the used letter position.
-;;    (setf (aref grid i j) nil)
+	(free-spots '()))
+;;	(found-words '()))
 
     (if (not (member (cons i j) reserved-spots :test #'equal))
 	(push (cons i j) reserved-spots))
-    ;; (print "moi")
-    ;; (print reserved-spots)
+
+;;    (print letters-this-far)
+;;    (break)
     (setf free-spots (get-free-spots grid i j reserved-spots))
 
     ;; Concatenating the new letter to this far got letters.
-
     (setf letters-this-far 
 	  (concatenate 'string letters-this-far (string current-letter)))
+
+     ;; stopping to five letters words for testing.
+     (case (length letters-this-far)
+       (5 (setf free-spots nil))
+       (2 (and 
+	   (impossible-word-start-p letters-this-far)
+	   (return-from get-possible-words nil))))
     
+    ;; (print letters-this-far)
+    ;; (break)
+    ;; (if 
+    ;;  (and
+    ;;   (= (length letters-this-far) 2)
+    ;;   (impossible-word-start letters-this-far)     
+
+
     (cond 
       ((null free-spots)
-;;       (print "moi")
-;;       (break)
-       (setf combinated-words (list letters-this-far)))
-;;       (print combinated-words))
-      (t (loop for coordinate in free-spots do
-;;	      (break)
-	      (setf combinated-words 
-		    (append combinated-words (get-possible-words
-					      grid
-					      (car coordinate)
-					      (cdr coordinate)
-					      reserved-spots
-					      letters-this-far))))))
-
-    combinated-words))
+       ;; Return current word as a one-length list's item
+       (list letters-this-far))      
+      (t 	
+       (let ((found-words 
+	      (loop for coordinate in free-spots
+		 append	       
+		   (get-possible-words 
+		    grid
+		    (car coordinate)
+		    (cdr coordinate)
+		    reserved-spots
+		    letters-this-far))))
+	 (if (> (length letters-this-far) 2)
+	     (push letters-this-far found-words))
+	 found-words)))))
    
 (defun split-string-to-char-list (string-to-split)
   (loop for i from 0 upto (1- (length string-to-split))
      collect (char string-to-split i)))
 
-(defun split-string-to-groups-of-four (string-to-split)
+(defun split-string-to-groups (string-to-split group-length)
   (let ((char-list (split-string-to-char-list string-to-split)))   
-    (loop for i from 0 upto (1- (length char-list)) by 4
-       collect (subseq char-list i (+ i 4)))))
+    (loop for i from 0 upto (1- (length char-list)) by group-length
+       collect (subseq char-list i (+ i group-length)))))
 
-(defun create-letter-grid (grid-as-string)
-  (make-array '(4 4) :initial-contents (split-string-to-groups-of-four grid-as-string)))
+(defun create-letter-grid (grid-as-string &optional (x 4) (y 4))
+  (make-array (list x y) :initial-contents (split-string-to-groups grid-as-string x)))
 
-(defun find-words-automatically (grid-as-string)
-  (let ((grid (create-letter-grid grid-as-string))
-	(found-words '()))
-    (loop for i from 0 upto 3 do
-	 (loop for j from 0 upto 3 do
-	      (setf found-words 
-		    (append found-words (get-possible-words grid i j '())))))
-    found-words))
+(defun find-words-automatically (grid-as-string &optional (x 4) (y 4))
+  (let ((grid (create-letter-grid grid-as-string x y)))
+    (loop for i from 0 upto (1- (array-dimension grid 0)) append
+	 (loop for j from 0 upto (1- (array-dimension grid 1)) append
+	      (get-possible-words grid i j '() "")))))
 
 
 ;; the variables *Rs* and *G* are just for testing.
 (defparameter *rs* "oupihäeufutylärs")
 (defparameter *g* (create-letter-grid *rs*))
+
+;;(defparameter *vowels* (loop for char across "aeiouyäö" collect char))

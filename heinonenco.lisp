@@ -111,10 +111,14 @@
        ;; (create-regex-dispatcher "^/js-canvas" 'controller-js-canvas)
        (create-regex-dispatcher "^/boggle-clone" 'controller-boggle-clone)
        (create-regex-dispatcher "^/check-word" 'controller-check-word)
+       (create-regex-dispatcher "^/computer-score" 'controller-computer-score)
        (create-regex-dispatcher "^/save-high-score" 'controller-save-high-score)
        (create-regex-dispatcher "^/grammatical-case-game" 'controller-grammatical-case-game)))
        
 ;;      (ht-simple-ajax:create-ajax-dispatcher *ajax-processor*)))
+
+
+  
 
 (defun controller-main-page ()
   (standard-page (:title "Juho Antti Heinosen kotisivut")

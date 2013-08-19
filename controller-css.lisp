@@ -92,7 +92,12 @@
     (("#tblHighScores")
      (:width "70%"))
     (("#tblHighScores th")
-     (:text-align "left" :font-weight "Bold"))))
+     (:text-align "left" :font-weight "Bold"))
+    (("#sDialogScore span")
+     (:width "300px" :white-space "normal"))))
+    ;; (("#sDialogScore p")
+    ;;  (:width "300px" :white-space "nowrap"))))
+
   
   
 

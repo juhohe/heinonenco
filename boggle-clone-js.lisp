@@ -9,6 +9,9 @@
     (defvar *counter* (set-timeout timer 1000))
     (defvar *points* 0)
     (defvar *found-words* '())
+    (defvar *grid-string* "")
+    (defvar *computers-words* "")
+    (defvar *computers-score* 0)
 
     ((chain ($ document) ready) (lambda () (create-boggle)))
     
@@ -26,18 +29,30 @@
       (defvar seconds (- time-in-seconds (* 60 minutes)))
       (stringify minutes ":" seconds))
 
+    (defun pretty-print-computers-words()
+      (let ((words (chain *computers-words* (to-string))))	
+	(chain words (replace (regex "/,/gi") ", "))))
+
     (defun show-score-dialog ()
+      ;; (while (equal *computers-points* undefined)
+      ;; 	(chain console (log "moro")))
+      
+      (wait-for-element)
+      
       ((chain ($ "#sDialogScore") html)
-       (stringify "Peli päättyi. Löysit " 
+       (stringify "<p>Peli päättyi. Löysit " 
 		  (length *found-words*) 
 		  " sana" (if (= (length *found-words*) 1)  "n" "a") 
 		  " ja sait " *points* 
-		  " piste" (if (= *points* 1) "en" "ttä") 
-		  ". Aloitetaan uusi peli, kun painat OK."))
-      
-      ;; (format nil "Peli päättyi. Löysit ~d sana~:*~[a~;n~:;a~] ja sait ~d piste~:*~[ttä~;en~:;ttä~]. Aloitetaan uusi peli, kun painat OK." (length *found-words*) *points*))
+		  " piste" (if (= *points* 1) "en" "ttä")
+		  ". Aloitetaan uusi peli, kun painat OK.<br/></br>"
+		  "Tietokone löysi " (length *computers-words*) " sanaa ja "
+		  "sai " *computers-points* " pistettä. "
+		  "Sanat olivat seuraavat:</br></br> "
+		  (pretty-print-computers-words)
+;;		  (chain *computers-words* (to-string) "replace /,/gi \", \"")
+		  "</p>"))
 
-      
       (cond 
 	((and 
 	  (> *points* 0)
@@ -48,8 +63,18 @@
 	 ((chain ($ "#dGetNameForHighScore") show))
 	 ((chain ($ "[name='points']") val) *points*)
 	 ((chain ($ "[name='longest-word']") val) get-longest-word)))
-      ((chain ($ "#dialogScore") dialog)))
+      (chain ($ "#dialogScore") (dialog (create "width" 500))))
     
+    (defun get-computers-points ()
+      (chain (chain ((chain $ ajax) (create type "post" 
+    				     url "computer-score"
+;;    				     async false
+    				     data (create grid-string *grid-string*)))
+    		    (done (lambda (results)
+			    (setf result-array (chain *json* (parse results)))
+    			    (setf *computers-points* (chain result-array (shift)))
+    			    (setf *computers-words* result-array))))))
+
     (defun handle-game-end ()
       ;; (alert (stringify "Peli päättyi. Löysit " (length *found-words*) " sanaa ja sait " *points* " pistettä. Aloitetaan uusi peli, kun painat ok."))
 
@@ -58,6 +83,8 @@
       (chain (chain ($ ".dBoggle") (remove-class "dBoggle")) (add-class "boggleDisabled"))
 
       (chain ($ ".boggleControl") (attr "disabled" "disabled"))
+     
+;;      (get-computers-points)
 
       (show-score-dialog))
 
@@ -72,7 +99,6 @@
 
     (defun mark-un-selectable (x y)
       ((chain ((chain (chain ($ ".dBoggle") remove-class)) "dBoggle") add-class) "boggleDisabled")
-      ;;(chain ((chain (chain ($ ".boggleDisabled") filter))
       (chain ((chain (chain ($ ".boggleDisabled") filter))
 	      (chain (chain (lambda()
 			      (and 
@@ -88,15 +114,6 @@
 	     (remove-class "boggleDisabled") (add-class "dBoggle")))
 
     (defun boggle-click-handler()      
-      ;; (chain ($ ".tblBoggle") (mousedown
-      ;; 			       (lambda (event)
-      ;; 				 ;; If clicking with middle mouse button, submitting the selected letters.
-      ;; 				 (if
-      ;; 				  (and 
-      ;; 				   (= (chain (event which)) 2)
-      ;; 				   (equal (chain ($ "#dialogScore") (css "display")) "none"))
-      ;; 				  (chain ($ "#btnCheckWord") (trigger "click"))))))
-
       (chain ($ ".dBoggle") 
 	     (mousedown
 	      (lambda (event)
@@ -161,17 +178,14 @@
 	((chain ($ "#btnEndGame") click) (lambda () (setf *count* 0))))
 
       (defun fill-boggle-grid ()
-	(let ((dice-copy (chain *dice* (slice))))
+	(let ((dice-copy (chain *dice* (slice)))
+	      (letter ""))
 	  ((@ ($ ".dBoggle") each)
 	   (lambda ()
-					;	   (let ((dice-copy (chain *dice* (slice))))
-	     ((chain ($ this) html)
-	      (getprop (chain dice-copy (pop)) (random 6)))))))
-	    
-;;	    (random 6 (pop *dice*)))))
-
-	   ;; ((@ ($ this) html)	   
-	   ;;  (getprop *allowed-chars* (random (- (length *allowed-chars*) 1)) ))))
+	     (setf letter (getprop (chain dice-copy (pop)) (random 6)))
+	     (setf *grid-string* (concatenate 'string *grid-string* letter))
+	     ((chain ($ this) html) letter)))
+	(get-computers-points)))
       
       (defun create-boggle()
 	(boggle-click-handler)
@@ -185,7 +199,6 @@
 	((@ ($ "#btnCheckWord") click)
 	 (lambda ()
 	   (defvar triedWord ((@ ($ "#dGotLetters") html)))
-	   ;;	 (if (eq (find triedWord *found-words*) t)
 	   (if (> ((chain *found-words* index-of) triedword) -1)
 	       (progn (clear-grid)
 		      ((chain ($ "#dGotLetters") empty))		       
