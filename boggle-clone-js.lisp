@@ -33,11 +33,16 @@
       (let ((words (chain *computers-words* (to-string))))	
 	(chain words (replace (regex "/,/gi") ", "))))
 
+    ;; (defun wait-for-element ()
+    ;;   (if (eql (typeof *computers-points*) undefined)
+    ;; 	  (set-timeout (lambda ()
+    ;; 			 (wait-for-element))250)))
+
     (defun show-score-dialog ()
       ;; (while (equal *computers-points* undefined)
       ;; 	(chain console (log "moro")))
       
-      (wait-for-element)
+;;     (wait-for-element)
       
       ((chain ($ "#sDialogScore") html)
        (stringify "<p>Peli päättyi. Löysit " 
@@ -73,8 +78,8 @@
     		    (done (lambda (results)
 			    (setf result-array (chain *json* (parse results)))
     			    (setf *computers-points* (chain result-array (shift)))
-    			    (setf *computers-words* result-array))))))
-
+    			    (setf *computers-words* result-array)
+			    (chain ($ "#btnEndGame") (attr "disabled" nil)))))))
     (defun handle-game-end ()
       ;; (alert (stringify "Peli päättyi. Löysit " (length *found-words*) " sanaa ja sait " *points* " pistettä. Aloitetaan uusi peli, kun painat ok."))
 

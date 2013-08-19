@@ -27,7 +27,7 @@
            (:button :id "btnCheckWord" :class "boggleControl" :style "display: inline"
                     "Tarkista sana")
 	   (:button :id "btnClearWord" :class "boggleControl"  "Tyhjennä valinta")
-	   (:button :id "btnEndGame" "Lopeta peli etuajassa")
+	   (:button :id "btnEndGame" :disabled t  "Lopeta peli etuajassa")
 
 	   (:button :id "btnStartOver" :class "boggleControl" "Aloita uusi peli")
 	   (:br)
