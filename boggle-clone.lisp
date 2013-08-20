@@ -144,7 +144,9 @@
 (defun controller-computer-score ()
   (cond ((eq (hunchentoot:request-method*) :POST)
 	 (let ((computer-results
-		(check-computer-score (post-parameter "gridString"))))
+		(check-computer-score 
+		 (format nil "~(~a~)" (post-parameter "gridString")))))
+
 	   (setf (header-out "score") 
 		 (format nil "[~{\"~a\"~^, ~}]" computer-results))))))
 			 ;;(stringify computer-results))))))
@@ -186,23 +188,27 @@
 (defun is-word-accepted (analyses)
   (loop for el in analyses when		    
        (let ((word-class (cdr (assoc "CLASS" el :test #'string=))))
-	 (or	       
-	  ;; particles
-	  (equal word-class "suhdesana")
-	  (equal word-class "seikkasana")
-	  (equal word-class "sidesana")
-	  
-	  ;; verbs (only non-personal verb forms are accepted
-	  (and (equal word-class "teonsana")
-	       (null (cdr (assoc "PERSON" el :test #'string=))))	
-	  ;; nouns, adjectives, and pronouns
-	  (and
-	   ;; excluding proper nouns ("erisnimet" in Finnish)
-	   (not (equal (subseq word-class (- (length word-class) 4)) "nimi"))
-	   (equal (cdr (assoc "SIJAMUOTO" el :test #'string=)) "nimento")
-	   (null (cdr (assoc "FOCUS" el :test #'string=)))	 
-	   (null (cdr (assoc "POSSESSIVE" el :test #'string=))))))
-     return el))
+	 (and 
+	  (null (cdr (assoc "KYSYMYSLIITE" el :test #'string=)))
+	  (or	       
+	   ;; particles
+	   (equal word-class "suhdesana")
+	   (equal word-class "seikkasana")
+	   (equal word-class "sidesana")
+	   
+	   ;; verbs (only non-personal verb forms are accepted
+	   (and (equal word-class "teonsana")
+		(null (cdr (assoc "PERSON" el :test #'string=))))
+	   
+	   ;; nouns, adjectives, and pronouns
+	   (and
+	    ;; excluding proper nouns ("erisnimet" in Finnish)
+	    (not (equal (subseq word-class (- (length word-class) 4)) "nimi"))
+	    (equal (cdr (assoc "SIJAMUOTO" el :test #'string=)) "nimento")
+	    (null (cdr (assoc "FOCUS" el :test #'string=)))	 
+	    (null (cdr (assoc "POSSESSIVE" el :test #'string=)))))))
+
+	 return el))
 
 (defun get-free-spots (grid i j reserved-spots)
   (let ((dimension-x (array-dimension grid 0))
@@ -226,18 +232,54 @@
 
 ;;collect (cons i j)))))
            
+;; This function checks for two-letter start of a word.
 (defun impossible-word-start-p (word)
-  (let ((front-vowels '(#\a #\o #\u))
-	(back-vowels '(#\y #\ä #\ö))
-	(word-as-array (split-string-to-char-list word)))
-    (and
-     (some (lambda (c)
-	     (find c front-vowels))
-	   word-as-array)
-     (some (lambda (c)
-	     (find c back-vowels))
-	   word-as-array))))
-  
+  (or   
+   (cl-ppcre:scan "^([aou][yäö]|[yäö][aou])" word)
+   (cl-ppcre:scan "^[bdgkt](?![rl])" word)))
+    
+
+  ;; (let ((front-vowels '(#\a #\o #\u))
+  ;; 	(back-vowels '(#\y #\ä #\ö))	
+  ;; 	(word-as-array (split-string-to-char-list word))
+  ;; 	(stops '(#\b #\d #\g #\k #\t))
+  ;; 	(liquids '(#\l #\r))
+  ;; 	(char1 (char word 0))
+  ;; 	(char2 (char word 1)))
+  ;;   (or
+     
+  ;;    (and 
+  ;;     (not (find char2 *vowels*))
+  ;;     (not (find char1 *vowels*))
+  ;;     (or
+  ;;      (not (find char1 stops))
+  ;;      (and
+  ;; 	(find char1 stops)
+  ;; 	(not (find char2 liquids)))))
+     
+
+  ;;    (and 
+  ;;     (some (lambda (c)
+  ;; 	      (find c front-vowels))
+  ;; 	    word-as-array)
+  ;;     (some (lambda (c)
+  ;; 	      (find c back-vowels))
+  ;; 	    word-as-array)))))
+
+(defun is-consonant-p (letter)
+  (find letter *consonants*))
+
+(defun possible-word-p (last-letter word)
+   (and 
+    (find last-letter '(#\a #\e #\i #\o #\u #\y #\ä #\ö #\l #\n #\r #\s #\t))
+    (some #'is-consonant-p (split-string-to-char-list word))
+    ;; Rejecting words with five-letter-long and longer vowel clusters. 
+    (null (cl-ppcre:scan "([aeiouyäö]{5}|[bdghjklmnpqrstv]{5})" word))))
+
+;;(cl-ppcre:scan "([aeiouyäö]{5}|[bdghjklmnpqrstv]{5})" "srtgaaaae")
+
+
+
 (defun get-possible-words (grid i j reserved-spots letters-this-far)  
 ;;  (break)
 ;;  (print "here")
@@ -258,7 +300,7 @@
 
      ;; stopping to five letters words for testing.
      (case (length letters-this-far)
-       (5 (setf free-spots nil))
+       (7 (setf free-spots nil))
        (2 (and 
 	   (impossible-word-start-p letters-this-far)
 	   (return-from get-possible-words nil))))
@@ -274,7 +316,9 @@
     (cond 
       ((null free-spots)
        ;; Return current word as a one-length list's item
-       (list letters-this-far))      
+       (if (possible-word-p current-letter letters-this-far)
+	   (list letters-this-far)
+	   '()))
       (t 	
        (let ((found-words 
 	      (loop for coordinate in free-spots
@@ -285,7 +329,8 @@
 		    (cdr coordinate)
 		    reserved-spots
 		    letters-this-far))))
-	 (if (> (length letters-this-far) 2)
+	 (if (and (> (length letters-this-far) 2)
+		  (possible-word-p current-letter letters-this-far))
 	     (push letters-this-far found-words))
 	 found-words)))))
    
@@ -312,4 +357,5 @@
 (defparameter *rs* "oupihäeufutylärs")
 (defparameter *g* (create-letter-grid *rs*))
 
-;;(defparameter *vowels* (loop for char across "aeiouyäö" collect char))
+(defparameter *vowels* (loop for char across "aeiouyäö" collect char))
+(defparameter *consonants* (loop for char across "bdfghjklmnpqrstvyäö" collect char))

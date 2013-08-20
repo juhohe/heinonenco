@@ -12,7 +12,8 @@
 	       #:voikko
 	       #:elephant
 	       #:clsql
-	       #:cl-libxml2)
+	       #:cl-libxml2
+	       #:cl-ppcre)
 ;;               #:ht-simple-ajax)
   :components ((:file "package")
                (:file "heinonenco")
