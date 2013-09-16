@@ -111,8 +111,9 @@
   
   (let ((new-id (1+ (or (car (clsql:query "select max(id) from high_score" :flatp t)) 0)))
 	(row-timestamp (get-universal-time)))
-  (clsql:execute-command (format nil "insert into high_score (id, player_name, points, longest_word, timestamp) values (~d, '~a', ~d, '~a', '~a')" new-id player-name points longest-word row-timestamp))  
-  (clsql:disconnect :database "scores.db")))
+    
+    (clsql:execute-command (format nil "insert into high_score (id, player_name, points, longest_word, timestamp) values (~d, '~a', ~d, '~a', '~a')" new-id player-name points longest-word row-timestamp))  
+    (clsql:disconnect :database "scores.db")))
 
 (defun controller-check-word ()
   (cond ((eq (hunchentoot:request-method*) :POST)
@@ -126,11 +127,10 @@
 
 	   (setf (header-out "score") 
 		 (format nil "[~{\"~a\"~^, ~}]" computer-results))))))
-			 ;;(stringify computer-results))))))
 
 (defun check-computer-score (grid-as-string)
   (check-multiple-words 
-   (remove-duplicates (find-words-automatically grid-as-string) :test #'equal)))
+   (find-words-automatically (string-downcase grid-as-string))))
 
 (defun check-multiple-words (words-to-check)  
   (let ((accepted-words '())
@@ -180,72 +180,77 @@
 
 	 return el))
 
-(defun get-free-spots (i j grid-length reserved-spots)
+(defun get-free-spots (coordinate grid-length reserved-spots)
+  (let ((i (car coordinate))
+	(j (cdr coordinate)))
     (loop for a from (1- i) upto (1+ i) append
 	 (loop for b from (1- j) upto (1+ j)
 	    when (and (>= a 0) (< a grid-length)
 		      (>= b 0) (< b grid-length)
+		     ;; (and (not (equal a i)) (not (equal b j)))
 		      (null (member (cons a b) reserved-spots :test #'equal)))
-	      collect (cons a b))))
+	      collect (cons a b)))))
 	                 
 ;; This function checks for two-letter start of a word.
 (defun impossible-word-start-p (word)
   (or   
-   (cl-ppcre:scan "^([aou][yäö]|[yäö][aou])" word)
-   (cl-ppcre:scan "^[bdgkt](?![rl])" word)))
-    
-(defun is-consonant-p (letter)
-  (find letter *consonants*))
+   (cl-ppcre:scan "([aou][yäö]|[yäö][aou])" word)
+   (cl-ppcre:scan "^[bdgkpt](?![rl])" word)))
 
-(defun possible-word-p (last-letter word)
-   (and 
-;;    (find last-letter '(#\a #\e #\i #\o #\u #\y #\ä #\ö #\l #\n #\r #\s #\t))
-    (some #'is-consonant-p (split-string-to-char-list word))
-    ;; Rejecting words with six-letter-long consonant clusters.     
-    (cl-ppcre:scan "[aeiouyäölnrst]$" word)
-    (null (cl-ppcre:scan "([bdgkt]{3}|[bdghjklmnpqrstv]{6})" word))))
-;;    (null (cl-ppcre:scan "[bdgkt]{3}" word))))
+(defun possible-word-p (word)
+  (and
+   ;; Ensuring that the word has at least one consonant
+   ;; and ends with an allowed letter.
+   ;; TODO: rethink this, is it possible that a word accepted in this game
+   ;; has its only consonant as the last letter of the word?
+   (cl-ppcre:scan "[bdghjklmnprstv]+.*[aeiouyäölnrst]$" word)
+   ;; Rejecting words with three-letter-long stop clusters and
+   ;; six-letter-long consonant clusters.
+   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprtv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
+	  word))))
 
-(defun get-possible-words (grid i j grid-length reserved-spots letters-this-far)  
-  (let ((current-letter (aref grid i j))
-	(free-spots '()))
+(defun get-possible-words (grid coordinate grid-length
+			   reserved-spots letters-this-far
+			   &optional (maximum-word-length 8))
+  (labels ((get-possible-words-helper
+	     (grid coordinate grid-length reserved-spots letters-this-far)
+	   (let ((current-letter (aref grid 
+				       (car coordinate)
+				       (cdr coordinate)))
+		 (free-spots nil))
+	     (unless (find coordinate reserved-spots :test #'equal)
+	       (setf reserved-spots (cons coordinate reserved-spots)))
+	     
+	     (setf letters-this-far
+		   (concatenate 'string letters-this-far (string current-letter)))
+	     
+	     (cond
+	       ((= (length letters-this-far) maximum-word-length)
+		(return-from get-possible-words-helper 
+		  (if (possible-word-p letters-this-far)
+		      (list letters-this-far)))))
 
-    (if (not (find (cons i j) reserved-spots :test #'equal))
-	(push (cons i j) reserved-spots))
-    (setf free-spots (get-free-spots i j grid-length reserved-spots))
-
-    ;; Concatenating the new letter to this far got letters.
-    (setf letters-this-far 
-	  (concatenate 'string letters-this-far (string current-letter)))
-
-     ;; limiting to eight letters words for testing.
-     (case (length letters-this-far)
-       (9 (setf free-spots nil))
-       (2 (and 
-	   (impossible-word-start-p letters-this-far)
-	   (return-from get-possible-words nil))))   
-    (cond 
-      ((null free-spots)
-       ;; Return current word as a one-length list's item
-       (if (possible-word-p current-letter letters-this-far)
-	   (list letters-this-far)
-	   '()))
-      (t
-       (let ((found-words 
-	      (loop for coordinate in free-spots
-		 append	       
-		   (get-possible-words 
-		    grid
-		    (car coordinate)
-		    (cdr coordinate)
-		    grid-length
-		    reserved-spots
-		    letters-this-far))))
-	 (if (and (> (length letters-this-far) 2)
-		  (possible-word-p current-letter letters-this-far))
-	     (push letters-this-far found-words))
-	 found-words)))))
-   
+	     (setf free-spots
+		   (get-free-spots coordinate
+				   grid-length
+				   reserved-spots))	    
+	     
+	     (unless free-spots
+	       (return-from get-possible-words-helper
+		 (if (possible-word-p letters-this-far)
+		     (list letters-this-far))))
+	     
+	     (loop for spot in free-spots append
+		  (append (get-possible-words-helper grid spot grid-length
+					     reserved-spots 
+					     letters-this-far) 
+			  (if (and (> (length letters-this-far) 2)
+				   (possible-word-p letters-this-far))
+			      (list letters-this-far)))))))
+  
+    (get-possible-words-helper grid coordinate grid-length
+			       reserved-spots letters-this-far)))
+	       	       
 (defun split-string-to-char-list (string-to-split)
   (loop for i from 0 upto (1- (length string-to-split))
      collect (char string-to-split i)))
@@ -263,12 +268,14 @@
 				     grid-as-string grid-length))))
 
 ;; Grid as string must be a string of length whose square root is an integer.
-(defun find-words-automatically (grid-as-string)
+(defun find-words-automatically (grid-as-string &optional (maximum-word-length 9))
   (let ((grid (create-letter-grid grid-as-string)))
     (when grid
-      (loop for i from 0 upto (1- (array-dimension grid 0)) append
-	   (loop for j from 0 upto (1- (array-dimension grid 1)) append
-		(get-possible-words grid i j (array-dimension grid 0) '() ""))))))
+      (remove-duplicates
+       (loop for i from 0 upto (1- (array-dimension grid 0)) append
+	    (loop for j from 0 upto (1- (array-dimension grid 1)) append
+		 (get-possible-words grid (cons i j) (array-dimension grid 0) '() "" maximum-word-length))) :test #'equal))))
+  
 
 ;; the variables *Rs* and *G* are just for testing.
 (defparameter *s* "abcdefghi")
@@ -278,3 +285,17 @@
 
 (defparameter *vowels* (loop for char across "aeiouyäö" collect char))
 (defparameter *consonants* (loop for char across "bdfghjklmnpqrstvyäö" collect char))
+
+(defun fib (n)
+  "Simple recursive Fibonacci number function"
+  (if (< n 2)
+    n
+    (+ (fib (- n 1)) (fib (- n 2)))))
+
+(defun fib-trec (n)
+  "Tail-recursive Fibonacci number function"
+  (labels ((calc-fib (n a b)
+                     (if (= n 0)
+                       a
+                       (calc-fib (- n 1) b (+ a b)))))
+    (calc-fib n 0 1)))
