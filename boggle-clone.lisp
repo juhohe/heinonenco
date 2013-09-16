@@ -116,8 +116,8 @@
     (clsql:disconnect :database "scores.db")))
 
 (defun controller-check-word ()
-  (cond ((eq (hunchentoot:request-method*) :POST)
-	 (setf (header-out "score") (stringify (check-word-score (post-parameter "triedWord")))))))
+  (voikko:with-instance (i) (cond ((eq (hunchentoot:request-method*) :POST)
+				   (setf (header-out "score") (stringify (check-word-score (post-parameter "triedWord") i)))))))
 
 (defun controller-computer-score ()
   (cond ((eq (hunchentoot:request-method*) :POST)
@@ -134,18 +134,18 @@
 
 (defun check-multiple-words (words-to-check)  
   (let ((accepted-words '())
-	(total-score 0))    
-    (loop for word in words-to-check
-       do
-	 (let ((score (check-word-score word)))
-	   (cond ((> score 0)
-		  (incf total-score score)
-		  (push word accepted-words)))))
-    (append (list total-score) accepted-words)))		
+	(total-score 0))
+    (voikko:with-instance (i) 
+      (loop for word in words-to-check
+	 do
+	   (let ((score (check-word-score word i)))
+	     (cond ((> score 0)
+		    (incf total-score score)
+		    (push word accepted-words)))))
+      (append (list total-score) accepted-words))))
 
-(defun check-word-score (word-to-check)
-  (let ((analyses (voikko:with-instance (i)
-  		    (voikko:analyze i word-to-check))))
+(defun check-word-score (word-to-check voikko-instance)
+  (let ((analyses (voikko:analyze voikko-instance word-to-check)))
     (if (is-word-accepted analyses)
 	(cond ((equal 3 (length word-to-check))
 	       1)
@@ -206,7 +206,7 @@
    (cl-ppcre:scan "[bdghjklmnprstv]+.*[aeiouyäölnrst]$" word)
    ;; Rejecting words with three-letter-long stop clusters and
    ;; six-letter-long consonant clusters.
-   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprtv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
+   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmnstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
 	  word))))
 
 (defun get-possible-words (grid coordinate grid-length
@@ -268,7 +268,7 @@
 				     grid-as-string grid-length))))
 
 ;; Grid as string must be a string of length whose square root is an integer.
-(defun find-words-automatically (grid-as-string &optional (maximum-word-length 9))
+(defun find-words-automatically (grid-as-string &optional (maximum-word-length 10))
   (let ((grid (create-letter-grid grid-as-string)))
     (when grid
       (remove-duplicates
@@ -276,12 +276,12 @@
 	    (loop for j from 0 upto (1- (array-dimension grid 1)) append
 		 (get-possible-words grid (cons i j) (array-dimension grid 0) '() "" maximum-word-length))) :test #'equal))))
   
-
 ;; the variables *Rs* and *G* are just for testing.
 (defparameter *s* "abcdefghi")
 (defparameter *sg* (create-letter-grid *s*))
 (defparameter *rs* "oupihäeufutylärs")
 (defparameter *g* (create-letter-grid *rs*))
+(defparameter *ts1* "limrtaekouaaiakr")
 
 (defparameter *vowels* (loop for char across "aeiouyäö" collect char))
 (defparameter *consonants* (loop for char across "bdfghjklmnpqrstvyäö" collect char))
