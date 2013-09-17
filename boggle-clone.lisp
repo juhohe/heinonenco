@@ -18,8 +18,6 @@
 	    second)))
 
 (defun controller-boggle-clone ()
-  ;; Open the store where our data is stored
-
   (standard-page (:title "Sanapeli" :page-scripts (:script :type "text/javascript" :src "scripts/boggle-clone.js"))
     (:article
      (:h1 "Sanapeli")
@@ -92,8 +90,8 @@
 	   (:div :id "dialogScore" :style "display:none;"
 		 (:span :id "sDialogScore")
 		 (:button :id "btnOk" "OK.")	   
-		 (:div :id "dGetNameForHighScore" :style "display:none;"	       
-					;		 (:form :action "save-high-score" :method "post"
+		 (:div :id "dGetNameForHighScore" :style "display:none;"    
+
 		       (:p "Onneksi olkoon! Pääsit kunniatauluun. Jos annat nimesi, tallennetaan tuloksesi top 10 -listaan.")
 		       (:label :for "player-name" "Nimi: ")
 		       (:input :type "text" :name "player-name")
@@ -122,16 +120,30 @@
 (defun controller-computer-score ()
   (cond ((eq (hunchentoot:request-method*) :POST)
 	 (let ((computer-results
-		(check-computer-score 
-		 (format nil "~(~a~)" (post-parameter "gridString")))))
-
+		(check-computer-score
+		 (format nil "~(~a~)" (post-parameter "gridString")) nil)))
 	   (setf (header-out "score") 
 		 (format nil "[~{\"~a\"~^, ~}]" computer-results))))))
 
-(defun check-computer-score (grid-as-string)
-  (check-multiple-words 
-   (find-words-automatically (string-downcase grid-as-string))))
+(defparameter *save-file-name* (merge-pathnames *application-path* "word-list.txt"))
 
+(defun check-computer-score (grid-as-string &optional (save-file-name))
+  "Finds words automatically from the grid string and computes score for them. Returns the score as the first item of the returned collection. Cdr of the list is the found words. If save-file-name is not nil, saving the word-list to a file with the path given in the parameter. TODO: test the file write better so that no threading issues will occur."
+  (let ((word-list nil))
+    (setf word-list 
+	  (check-multiple-words
+	   (find-words-automatically (string-downcase grid-as-string))))
+    (when save-file-name
+      (save-list-to-file-as-separate-strings save-file-name (cdr word-list))
+    word-list)))
+
+(defun save-list-to-file-as-separate-strings (file-name list-to-save)
+  (with-open-file (stream file-name
+			  :direction :output
+			  :if-exists :append
+			  :if-does-not-exist :create)
+    (format stream "~{\"~a\"~^ ~}" list-to-save)))
+   
 (defun check-multiple-words (words-to-check)  
   (let ((accepted-words '())
 	(total-score 0))
@@ -206,7 +218,7 @@
    (cl-ppcre:scan "[bdghjklmnprstv]+.*[aeiouyäölnrst]$" word)
    ;; Rejecting words with three-letter-long stop clusters and
    ;; six-letter-long consonant clusters.
-   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmnstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
+   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
 	  word))))
 
 (defun get-possible-words (grid coordinate grid-length
@@ -283,19 +295,57 @@
 (defparameter *g* (create-letter-grid *rs*))
 (defparameter *ts1* "limrtaekouaaiakr")
 
-(defparameter *vowels* (loop for char across "aeiouyäö" collect char))
-(defparameter *consonants* (loop for char across "bdfghjklmnpqrstvyäö" collect char))
+;;(defparameter *vowels* (loop for char across "aeiouyäö" collect char))
+;;(defparameter *consonants* (loop for char across "bdfghjklmnpqrstvyäö" collect char))
 
-(defun fib (n)
-  "Simple recursive Fibonacci number function"
-  (if (< n 2)
-    n
-    (+ (fib (- n 1)) (fib (- n 2)))))
+;; (defun remove-nth (list n)
+;;   (remove-if (constantly t) list :start n :end (1+ n)))
 
-(defun fib-trec (n)
-  "Tail-recursive Fibonacci number function"
-  (labels ((calc-fib (n a b)
-                     (if (= n 0)
-                       a
-                       (calc-fib (- n 1) b (+ a b)))))
-    (calc-fib n 0 1)))
+;; (define-modify-macro remove-nth-f (n) remove-nth "Remove the nth element")
+
+;; (defmacro pop-nth (list n)
+;;   (let ((n-var (gensym)))
+;;     `(let ((,n-var ,n))
+;;        (prog1 (nth ,n-var ,list)
+;;          (remove-nth-f ,list ,n-var)))))
+
+(defun get-1000-example-items (collection)
+  "Returns 1000 random items from a collection. If the collection's size is smaller,
+returning the whole list"
+  (let ((collection-length (length collection)))    
+    (if (<= collection-length 1000)
+	collection
+	(loop for i from 999 downto 0 
+	   collect (nth (random collection-length) collection)))))
+
+;;(defparameter *collected-words-hash-table* (get-found-words-hash-table))
+
+(defun get-found-words-hash-table (&optional (file-path *save-file-name*))
+  (with-open-file (stream file-path :direction :input)
+    (let ((file-contents (slurp-stream4 stream)))
+      (setf file-contents 
+	    (remove-duplicates
+	     (read-from-string
+	      (concatenate 'string "(" file-contents ")")) :test #'equal))
+      file-contents)))
+
+;; http://www.ymeme.com/slurping-a-file-common-lisp-83.html
+(defun slurp-stream4 (stream)
+  (let ((seq (make-string (file-length stream))))
+    (read-sequence seq stream)
+    seq))
+
+
+;; (defun fib (n)
+;;   "Simple recursive Fibonacci number function"
+;;   (if (< n 2)
+;;     n
+;;     (+ (fib (- n 1)) (fib (- n 2)))))
+
+;; (defun fib-trec (n)
+;;   "Tail-recursive Fibonacci number function"
+;;   (labels ((calc-fib (n a b)
+;;                      (if (= n 0)
+;;                        a
+;;                        (calc-fib (- n 1) b (+ a b)))))
+;;     (calc-fib n 0 1)))
