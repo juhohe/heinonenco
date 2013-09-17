@@ -215,7 +215,8 @@
    ;; and ends with an allowed letter.
    ;; TODO: rethink this, is it possible that a word accepted in this game
    ;; has its only consonant as the last letter of the word?
-   (cl-ppcre:scan "[bdghjklmnprstv]+.*[aeiouyäölnrst]$" word)
+   (cl-ppcre:scan "[bdghjklmnprstv]" word)
+   (cl-ppcre:scan "[aeiouyäölnrst]$" word)
    ;; Rejecting words with three-letter-long stop clusters and
    ;; six-letter-long consonant clusters.
    (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
