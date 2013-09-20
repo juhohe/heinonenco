@@ -134,8 +134,8 @@
 	  (check-multiple-words
 	   (find-words-automatically (string-downcase grid-as-string))))
     (when save-file-name
-      (save-list-to-file-as-separate-strings save-file-name (cdr word-list))
-    word-list)))
+      (save-list-to-file-as-separate-strings save-file-name (cdr word-list)))
+    word-list))
 
 (defun save-list-to-file-as-separate-strings (file-name list-to-save)
   (with-open-file (stream file-name
