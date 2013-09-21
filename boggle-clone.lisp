@@ -228,6 +228,13 @@
    (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou]|[^aeiouyäölnrst])$)"
 			word))))
 
+(defun return-word-if-long-enough-and-valid (word)
+  (if 
+   (and 
+    (> (length word) 2)
+    (possible-word-p word))
+   (list word)))       					     
+
 (defun get-possible-words (grid x y grid-length
 			   reserved-spots letters-this-far
 			   &optional (maximum-word-length 8))
@@ -252,7 +259,7 @@
 	       ;; the current tile.
 	       (unless free-spots
 		 (return-from get-possible-words-helper
-		   (return-word-if-long-enough-and-possible letters-this-far)))
+		   (return-word-if-long-enough-and-valid letters-this-far)))
 	       
 	       (loop for spot in free-spots append
 		    (append (get-possible-words-helper grid (car spot)
@@ -263,13 +270,6 @@
     
     (get-possible-words-helper grid x y grid-length
 			       reserved-spots letters-this-far)))
-
-(defun return-word-if-long-enough-and-valid (word)
-  (if 
-   (and 
-    (> (length word) 2)
-    (possible-word-p word))
-   (list word)))       					     
 
 (defun split-string-to-char-list (string-to-split)
   (loop for i from 0 upto (1- (length string-to-split))
