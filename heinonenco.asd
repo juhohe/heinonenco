@@ -10,7 +10,6 @@
                #:parenscript
                #:css-lite
 	       #:voikko
-;;	       #:elephant
 	       #:clsql
 	       #:cl-libxml2
 	       #:cl-ppcre)

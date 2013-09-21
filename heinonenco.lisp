@@ -10,17 +10,17 @@
                                            :document-root *application-path*
                                            :error-template-directory (stringify *application-path* "errors/")))
 
-(elephant:defpclass high-score ()
-  ((player-name :initarg :player-name
-		:accessor player-name)
-   (points :initarg :points
-	   :accessor points)
-   (longest-word :initarg :longest-word
-		 :accessor longest-word
-		 :initform "")
-   (timestamp :initarg :timestamp
-              :accessor timestamp
-              :initform (get-universal-time))))
+;; (elephant:defpclass high-score ()
+;;   ((player-name :initarg :player-name
+;; 		:accessor player-name)
+;;    (points :initarg :points
+;; 	   :accessor points)
+;;    (longest-word :initarg :longest-word
+;; 		 :accessor longest-word
+;; 		 :initform "")
+;;    (timestamp :initarg :timestamp
+;;               :accessor timestamp
+;;               :initform (get-universal-time))))
 
 
 ;;(clsql:start-sql-recording)
