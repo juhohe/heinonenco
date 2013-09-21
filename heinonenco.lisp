@@ -6,7 +6,7 @@
 (defparameter *application-path* (asdf:system-source-directory :heinonenco))
 
 (defparameter *my-acceptor* (make-instance 'hunchentoot:easy-acceptor
-                                           :port 8888
+                                           :port 80
                                            :document-root *application-path*
                                            :error-template-directory (stringify *application-path* "errors/")))
 
