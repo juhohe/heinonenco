@@ -192,15 +192,24 @@
 
      return el))
 
-(defun get-free-spots (coordinate grid-length reserved-spots)
-  (let ((i (car coordinate))
-	(j (cdr coordinate)))
-    (loop for a from (1- i) upto (1+ i) append
-	 (loop for b from (1- j) upto (1+ j)
-	    when (and (>= a 0) (< a grid-length)
+(defun get-free-spots (x y grid-length reserved-spots)  
+  (loop for a from (1- x) upto (1+ x) append
+       (loop for b from (1- y) upto (1+ y)
+	  when (and (>= a 0) (< a grid-length)
 		      (>= b 0) (< b grid-length)
-		      (null (member (cons a b) reserved-spots :test #'equal)))
-	    collect (cons a b)))))
+		      (null (member (cons a b) reserved-spots :test #'equal)))	    
+	  collect (cons a b))))
+
+;; (defun get-free-spots2 (x y grid-length reserved-spots)
+;;   (let ((i x)
+;; 	(j y))
+;;     (loop for a from (1- i) upto (1+ i) append
+;; 	 (loop for b from (1- j) upto (1+ j)
+;; 	    when (and (>= a 0) (< a grid-length)
+;; 		      (>= b 0) (< b grid-length)
+;; 		      (null (member (cons a b) reserved-spots :test #'equal)))
+;; 	    collect (cons a b)))))
+
 
 ;; This function checks for two-letter start of a word.
 (defun impossible-word-start-p (word)
@@ -208,63 +217,59 @@
    (cl-ppcre:scan "([aou][yäö]|[yäö][aou])" word)
    (cl-ppcre:scan "^[bdgkpt](?![rl])" word)))
 
+;; This seems to be the worst bottle neck in getting words...
 (defun possible-word-p (word)
   (and
-   ;; Ensuring that the word has at least one consonant
-   ;; and ends with an allowed letter.
-   ;; TODO: rethink this, is it possible that a word accepted in this game
-   ;; has its only consonant as the last letter of the word?
-   (cl-ppcre:scan "[bdghjklmnprstv]" word)
-   (cl-ppcre:scan "[aeiouyäölnrst]$" word)
    ;; Rejecting words with three-letter-long stop clusters and
    ;; six-letter-long consonant clusters.
-   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
+   ;; Also rejecting vowel combinations (possibly with a consonant in between)
+   ;; that break the vowel harmony.
+   ;; Also rejecting words with not an allowed character in end.
+   (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou]|[^aeiouyäölnrst])$)"
 			word))))
 
-(defun get-possible-words (grid coordinate grid-length
+(defun get-possible-words (grid x y grid-length
 			   reserved-spots letters-this-far
 			   &optional (maximum-word-length 8))
   (labels ((get-possible-words-helper
-	       (grid coordinate grid-length reserved-spots letters-this-far)
-	     (let ((current-letter (aref grid 
-					 (car coordinate)
-					 (cdr coordinate)))
-		   (free-spots nil))
-	       
+	       (grid x y grid-length reserved-spots letters-this-far)	     
+	     (let ((free-spots nil))	      
+
 	       ;; Modified the concatenating to reserved spots to work as a set.
-	       (pushnew coordinate reserved-spots :test #'equal)
-	       
+	       (pushnew (cons x y) reserved-spots :test #'equal)	      
+
 	       (setf letters-this-far
-		     (concatenate 'string letters-this-far (string current-letter)))
-
-	       (cond
-		 ((= (length letters-this-far) maximum-word-length)
-		  (return-from get-possible-words-helper 
-		    (if (possible-word-p letters-this-far)
-			(list letters-this-far)))))
-	       	       
-	       (setf free-spots
-		     (get-free-spots coordinate
-				     grid-length
-				     reserved-spots))
-
+		     (concatenate 'string letters-this-far 
+				  (string (aref grid x y))))
+	       
+	       (if (< (length letters-this-far) maximum-word-length)
+		   (setf free-spots
+			 (get-free-spots x y
+					 grid-length
+					 reserved-spots)))
+	       
 	       ;; Returning from the function if no free spots are found around
 	       ;; the current tile.
 	       (unless free-spots
 		 (return-from get-possible-words-helper
-		   (if (possible-word-p letters-this-far)
-		       (list letters-this-far))))
+		   (return-word-if-long-enough-and-possible letters-this-far)))
 	       
 	       (loop for spot in free-spots append
-		    (append (get-possible-words-helper grid spot grid-length
+		    (append (get-possible-words-helper grid (car spot)
+						       (cdr spot) grid-length
 						       reserved-spots 
-						       letters-this-far) 
-			    (if (and (> (length letters-this-far) 2)
-				     (possible-word-p letters-this-far))
-				(list letters-this-far)))))))
+						       letters-this-far)
+			    (return-word-if-long-enough-and-valid letters-this-far))))))
     
-    (get-possible-words-helper grid coordinate grid-length
+    (get-possible-words-helper grid x y grid-length
 			       reserved-spots letters-this-far)))
+
+(defun return-word-if-long-enough-and-valid (word)
+  (if 
+   (and 
+    (> (length word) 2)
+    (possible-word-p word))
+   (list word)))       					     
 
 (defun split-string-to-char-list (string-to-split)
   (loop for i from 0 upto (1- (length string-to-split))
@@ -289,7 +294,13 @@
       (remove-duplicates
        (loop for i from 0 upto (1- (array-dimension grid 0)) append
 	    (loop for j from 0 upto (1- (array-dimension grid 1)) append
-		 (get-possible-words grid (cons i j) (array-dimension grid 0) '() "" maximum-word-length))) :test #'equal))))
+		 (get-possible-words grid 
+				     i
+				     j
+				     (array-dimension grid 0) 
+				     nil 
+				     ""
+				     maximum-word-length))) :test #'equal))))
 
 ;; the variables *Rs* and *G* are just for testing.
 (defparameter *s* "abcdefghi")
