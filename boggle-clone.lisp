@@ -143,7 +143,7 @@
 			  :if-exists :append
 			  :if-does-not-exist :create)
     (format stream "~{\"~a\"~^ ~}" list-to-save)))
-   
+
 (defun check-multiple-words (words-to-check)  
   (let ((accepted-words '())
 	(total-score 0))
@@ -190,7 +190,7 @@
 	    (null (cdr (assoc "FOCUS" el :test #'string=)))	 
 	    (null (cdr (assoc "POSSESSIVE" el :test #'string=)))))))
 
-	 return el))
+     return el))
 
 (defun get-free-spots (coordinate grid-length reserved-spots)
   (let ((i (car coordinate))
@@ -199,10 +199,9 @@
 	 (loop for b from (1- j) upto (1+ j)
 	    when (and (>= a 0) (< a grid-length)
 		      (>= b 0) (< b grid-length)
-		     ;; (and (not (equal a i)) (not (equal b j)))
 		      (null (member (cons a b) reserved-spots :test #'equal)))
-	      collect (cons a b)))))
-	                 
+	    collect (cons a b)))))
+
 ;; This function checks for two-letter start of a word.
 (defun impossible-word-start-p (word)
   (or   
@@ -220,50 +219,53 @@
    ;; Rejecting words with three-letter-long stop clusters and
    ;; six-letter-long consonant clusters.
    (null (cl-ppcre:scan "(^(.?[aou][^l]?[yäö]|.?[yäö][^l]?[aou]|[hjlmnrsv][bdfghjklmnprstv]|.?[fv][hst]|[bdgkt][bdfgjkmstv])|([bdgkt]{3}|[bdghjklmnpqrstv]{6})|([aou][^l]?[yäö]|[yäö][^l]?[aou])$)"
-	  word))))
+			word))))
 
 (defun get-possible-words (grid coordinate grid-length
 			   reserved-spots letters-this-far
 			   &optional (maximum-word-length 8))
   (labels ((get-possible-words-helper
-	     (grid coordinate grid-length reserved-spots letters-this-far)
-	   (let ((current-letter (aref grid 
-				       (car coordinate)
-				       (cdr coordinate)))
-		 (free-spots nil))
-	     (unless (find coordinate reserved-spots :test #'equal)
-	       (setf reserved-spots (cons coordinate reserved-spots)))
-	     
-	     (setf letters-this-far
-		   (concatenate 'string letters-this-far (string current-letter)))
-	     
-	     (cond
-	       ((= (length letters-this-far) maximum-word-length)
-		(return-from get-possible-words-helper 
-		  (if (possible-word-p letters-this-far)
-		      (list letters-this-far)))))
+	       (grid coordinate grid-length reserved-spots letters-this-far)
+	     (let ((current-letter (aref grid 
+					 (car coordinate)
+					 (cdr coordinate)))
+		   (free-spots nil))
+	       
+	       ;; Modified the concatenating to reserved spots to work as a set.
+	       (pushnew coordinate reserved-spots :test #'equal)
+	       
+	       (setf letters-this-far
+		     (concatenate 'string letters-this-far (string current-letter)))
 
-	     (setf free-spots
-		   (get-free-spots coordinate
-				   grid-length
-				   reserved-spots))	    
-	     
-	     (unless free-spots
-	       (return-from get-possible-words-helper
-		 (if (possible-word-p letters-this-far)
-		     (list letters-this-far))))
-	     
-	     (loop for spot in free-spots append
-		  (append (get-possible-words-helper grid spot grid-length
-					     reserved-spots 
-					     letters-this-far) 
-			  (if (and (> (length letters-this-far) 2)
-				   (possible-word-p letters-this-far))
-			      (list letters-this-far)))))))
-  
+	       (cond
+		 ((= (length letters-this-far) maximum-word-length)
+		  (return-from get-possible-words-helper 
+		    (if (possible-word-p letters-this-far)
+			(list letters-this-far)))))
+	       	       
+	       (setf free-spots
+		     (get-free-spots coordinate
+				     grid-length
+				     reserved-spots))
+
+	       ;; Returning from the function if no free spots are found around
+	       ;; the current tile.
+	       (unless free-spots
+		 (return-from get-possible-words-helper
+		   (if (possible-word-p letters-this-far)
+		       (list letters-this-far))))
+	       
+	       (loop for spot in free-spots append
+		    (append (get-possible-words-helper grid spot grid-length
+						       reserved-spots 
+						       letters-this-far) 
+			    (if (and (> (length letters-this-far) 2)
+				     (possible-word-p letters-this-far))
+				(list letters-this-far)))))))
+    
     (get-possible-words-helper grid coordinate grid-length
 			       reserved-spots letters-this-far)))
-	       	       
+
 (defun split-string-to-char-list (string-to-split)
   (loop for i from 0 upto (1- (length string-to-split))
      collect (char string-to-split i)))
@@ -271,14 +273,14 @@
 (defun split-string-to-groups (string-to-split group-length)
   (let ((char-list (split-string-to-char-list string-to-split)))
     (loop for i from 0 upto (1- (length char-list)) by group-length
-	 collect (subseq char-list i (+ i group-length)))))
+       collect (subseq char-list i (+ i group-length)))))
 
 (defun create-letter-grid (grid-as-string)
   (let ((grid-length (rationalize (sqrt (length grid-as-string)))))
     (when (integerp grid-length))
-      (make-array (list grid-length grid-length) 
-		  :initial-contents (split-string-to-groups 
-				     grid-as-string grid-length))))
+    (make-array (list grid-length grid-length) 
+		:initial-contents (split-string-to-groups 
+				   grid-as-string grid-length))))
 
 ;; Grid as string must be a string of length whose square root is an integer.
 (defun find-words-automatically (grid-as-string &optional (maximum-word-length 10))
@@ -288,7 +290,7 @@
        (loop for i from 0 upto (1- (array-dimension grid 0)) append
 	    (loop for j from 0 upto (1- (array-dimension grid 1)) append
 		 (get-possible-words grid (cons i j) (array-dimension grid 0) '() "" maximum-word-length))) :test #'equal))))
-  
+
 ;; the variables *Rs* and *G* are just for testing.
 (defparameter *s* "abcdefghi")
 (defparameter *sg* (create-letter-grid *s*))
@@ -313,11 +315,11 @@
 (defun get-1000-example-items (collection)
   "Returns 1000 random items from a collection. If the collection's size is smaller,
 returning the whole list"
-  (let ((collection-length (length collection)))    
+  (let ((collection-length (length collection)))
     (if (<= collection-length 1000)
 	collection
 	(loop for i from 999 downto 0 
-	   collect (nth (random collection-length) collection)))))
+	   collect (nth (random collection-length *random-state*) collection)))))
 
 ;;(defparameter *collected-words-hash-table* (get-found-words-hash-table))
 
@@ -336,6 +338,44 @@ returning the whole list"
     (read-sequence seq stream)
     seq))
 
+;; http://www.gigamonkeys.com/book/conclusion-whats-next.html
+(defmacro with-gensyms ((&rest names) &body body)
+  `(let ,(loop for n in names collect `(,n (gensym)))
+     ,@body))
+
+(defparameter *timing-data* ())
+
+(defmacro with-timing (label &body body)
+  (with-gensyms (start)
+    `(let ((,start (get-internal-run-time)))
+      (unwind-protect (progn ,@body)
+        (push (list ',label ,start (get-internal-run-time)) *timing-data*)))))
+
+(defun clear-timing-data ()
+  (setf *timing-data* ()))
+
+(defun show-timing-data ()
+  (loop for (label time count time-per %-of-total) in (compile-timing-data) do
+       (format t "~3d% ~a: ~d ticks over ~d calls for ~d per.~%" 
+               %-of-total label time count time-per)))
+
+(defun compile-timing-data () 
+  (loop with timing-table = (make-hash-table)
+     with count-table = (make-hash-table)
+     for (label start end) in *timing-data*
+     for time = (- end start)
+     summing time into total
+     do
+       (incf (gethash label timing-table 0) time)
+       (incf (gethash label count-table 0))
+     finally 
+       (return
+         (sort
+          (loop for label being the hash-keys in timing-table collect
+               (let  ((time (gethash label timing-table))
+                      (count (gethash label count-table)))
+                 (list label time count (round (/ time count)) (round (* 100 (/ time total))))))
+          #'> :key #'fifth))))
 
 ;; (defun fib (n)
 ;;   "Simple recursive Fibonacci number function"
