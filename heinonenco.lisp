@@ -10,6 +10,20 @@
                                            :document-root *application-path*
                                            :error-template-directory (stringify *application-path* "errors/")))
 
+;; See http://msnyder.info/posts/2011/07/lisp-for-the-web-part-ii/
+;; Making it easier to use jQuery with Parenscript.
+(defmacro $$ ((selector event-binding) &body body)
+           `((chain ($ ,selector) ,event-binding) 
+	     (lambda () ,@body)))
+
+(defmacro $$$ ((selector event-binding))
+  `(chain ($ ,selector) ,event-binding))
+    
+
+(parenscript:import-macros-from-lisp '$$)
+(parenscript:import-macros-from-lisp '$$$)
+
+
 ;; (elephant:defpclass high-score ()
 ;;   ((player-name :initarg :player-name
 ;; 		:accessor player-name)
@@ -21,7 +35,6 @@
 ;;    (timestamp :initarg :timestamp
 ;;               :accessor timestamp
 ;;               :initform (get-universal-time))))
-
 
 ;;(clsql:start-sql-recording)
 

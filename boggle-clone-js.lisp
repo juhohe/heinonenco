@@ -13,7 +13,9 @@
     (defvar *computers-words* "")
     (defvar *computers-score* 0)
 
-    ((chain ($ document) ready) (lambda () (create-boggle)))
+    ($$ (document ready) (create-boggle))
+
+    ;;((chain ($ document) ready) (lambda () (create-boggle)))
     
     (defun random-shuffle (sequence)
       (let ((randomized (list))
@@ -43,7 +45,7 @@
       ;; 	(chain console (log "moro")))
       
 ;;     (wait-for-element)
-      
+       
       ((chain ($ "#sDialogScore") html)
        (stringify "<p>Peli päättyi. Löysit " 
 		  (length *found-words*) 
@@ -64,10 +66,10 @@
 	  (or (= (chain ($ "#tdTenthScore") length) 0)
 	      (> (parse-int *points*) (parse-int (chain ($ "#tdTenthScore") (html))))))
 	  
-	 ((chain ($ "#btnOk") hide))
-	 ((chain ($ "#dGetNameForHighScore") show))
-	 ((chain ($ "[name='points']") val) *points*)
-	 ((chain ($ "[name='longest-word']") val) get-longest-word)))
+	 ($$$ ("#btnOk" (hide)))
+	 ($$$ ("#dGetNameForHighScore" (show)))
+	 ($$$ ("[name='points']" (val *points*)))
+	 ($$$ ("[name='longest-word']" (val get-longest-word)))))
       (chain ($ "#dialogScore") (dialog (create "width" 500))))
     
     (defun get-computers-points ()
@@ -85,7 +87,7 @@
 
       (clear-grid)
 ;;      (chain ($ ".dBoggle") (off "click"))
-      (chain (chain ($ ".dBoggle") (remove-class "dBoggle")) (add-class "boggleDisabled"))
+      (chain (chain ($ ".dBoggle") (remove-class "dBoggle")) (add-class "boggleDisabled"))      
 
       (chain ($ ".boggleControl") (attr "disabled" "disabled"))
      
