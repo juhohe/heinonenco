@@ -57,7 +57,6 @@
 		  "sai " *computers-points* " pistettä. "
 		  "Sanat olivat seuraavat:</br></br> "
 		  (pretty-print-computers-words)
-;;		  (chain *computers-words* (to-string) "replace /,/gi \", \"")
 		  "</p>"))
 
       (cond 
@@ -91,6 +90,8 @@
 
       (chain ($ ".boggleControl") (attr "disabled" "disabled"))
      
+      (chain ($ "#btnEndGame") (attr "disabled" "disabled"))
+
 ;;      (get-computers-points)
 
       (show-score-dialog))
@@ -120,8 +121,17 @@
 			       )))))
 	     (remove-class "boggleDisabled") (add-class "dBoggle")))
 
-    (defun boggle-click-handler()      
-      (chain ($ ".dBoggle") 
+    (defun boggle-click-handler()
+      ;; Triggering word check if pressed space or enter.
+      (chain ($ document)
+	     (keypress
+	      (lambda (e)
+		(if (or (= (chain e which) 32) (= (chain e which) 13))
+		    ($$$ ("#btnCheckWord" (trigger "click")))))))
+
+
+
+      (chain ($ ".dBoggle")
 	     (mousedown
 	      (lambda (event)
 		(cond 
@@ -132,6 +142,7 @@
 			    ((chain ((chain ($ this) add-class) "boggleSelected") remove-class) "dBoggle")
 			    ((@ ($ "#dGotLetters") append) selectedletter)
 			    (mark-un-selectable ((@ ($ this) data) "x") ((@ ($ this) data) "y"))))))
+		  ;; Checking word if not the leftmost mouse button clicked.
 		  (t
 		   (chain ($ "#btnCheckWord") (trigger "click"))))))))
 
@@ -195,7 +206,7 @@
 	(get-computers-points)))
       
       (defun create-boggle()
-	(boggle-click-handler)
+	(boggle-click-handler)       
 	(boggleClearWordClickHandler)
 	(boggleStartOverClickHandler)
 	(boggle-end-game-click-handler)
