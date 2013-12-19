@@ -41,11 +41,11 @@
              (:title ,title)
              (:link :type "text/css"
                     :rel "stylesheet"
-	     	    :media "screen and (min-width: 51em)"
+	     	    :media "screen and (min-width: 65em)"
                     :href "styles/desktop.css")
              (:link :type "text/css"
                     :rel "stylesheet"
-		    :media "screen and (min-width: 31em) and (max-width: 50.99em)"
+		    :media "screen and (min-width: 31em) and (max-width: 64.99em)"
                     :href "styles/tablet.css")
 	     (:link :type "text/css"
                     :rel "stylesheet"

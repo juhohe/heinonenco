@@ -6,7 +6,10 @@
   (let ((body-width "80%")
 	(body-min-width "46em")
 	(lisp-alien-img "url(../img/lisplogo_128.png)")
-	(body-padding "0em 2em 2em 2em"))	 
+	(body-padding "0em 2em 2em 2em")
+	(game-button-width "auto")
+	(game-button-height "auto")
+	(game-button-font-size "normal"))
     
     ;; Setting some parts 
     (cond
@@ -14,13 +17,19 @@
        (setf body-width "90%")
        (setf body-min-width "15em")
        (setf lisp-alien-img "none")
-       (setf body-padding "0 1em 1em 1em"))
+       (setf body-padding "0 1em 1em 1em")
+       (setf game-button-width "7em")
+       (setf game-button-height "7em")
+       (setf game-button-font-size "Huge"))
       
       ((eq screen-type 'mobile)
        (setf body-width "97%")
        (setf body-min-width "10em")
        (setf lisp-alien-img "none")
-       (setf body-padding "0 1em 1em 1em")))
+       (setf body-padding "0 1em 1em 1em")
+       (setf game-button-width "1em")
+       (setf game-button-height "1em")
+       (setf game-button-font-size "Large")))
     
     (css-lite:css
       (("body")
@@ -90,6 +99,10 @@
       
       ((".dWordGame")
        (:margin "0 auto 0 auto" :display "inline-block"))
+
+      ((".gameButton")
+       (:height game-button-height :width game-button-width
+		:font-size game-button-font-size))
 
       (("#dGameGrid")
        (:display "inline" :width "50%"))
