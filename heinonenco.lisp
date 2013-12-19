@@ -10,45 +10,25 @@
                                            :document-root *application-path*
                                            :error-template-directory (stringify *application-path* "errors/")))
 
+(defun create-acceptor-with-another-port (&optional (port 8888))
+  (setf *my-acceptor* (make-instance 'hunchentoot:easy-acceptor
+				     :port port
+				     :document-root *application-path*
+				     :error-template-directory (stringify *application-path* "errors/"))))
+
 ;; See http://msnyder.info/posts/2011/07/lisp-for-the-web-part-ii/
 ;; Making it easier to use jQuery with Parenscript.
 (defmacro $$ ((selector event-binding) &body body)
-           `((chain ($ ,selector) ,event-binding) 
-	     (lambda () ,@body)))
+  `((chain ($ ,selector) ,event-binding) 
+    (lambda () ,@body)))
 
 (defmacro $$$ ((selector event-binding))
   `(chain ($ ,selector) ,event-binding))
-    
 
 (parenscript:import-macros-from-lisp '$$)
 (parenscript:import-macros-from-lisp '$$$)
 
-
-;; (elephant:defpclass high-score ()
-;;   ((player-name :initarg :player-name
-;; 		:accessor player-name)
-;;    (points :initarg :points
-;; 	   :accessor points)
-;;    (longest-word :initarg :longest-word
-;; 		 :accessor longest-word
-;; 		 :initform "")
-;;    (timestamp :initarg :timestamp
-;;               :accessor timestamp
-;;               :initform (get-universal-time))))
-
-;;(clsql:start-sql-recording)
-
 (clsql:enable-sql-reader-syntax)
-
-;;(defparameter *db-spec* '(:clsql (:sqlite3 "scores.db")))
-;;(defparameter *elephant-store* (elephant:open-store *db-spec*))
-
-;;(elephant:open-store *db-spec*)
-					; Container for all our high scores
-;; (defparameter *high-scores* (or (elephant:get-from-root "high-scores")
-;; 			  (let ((high-scores (elephant:make-pset)))
-;; 			    (elephant:add-to-root "high-scores" high-scores)
-;; 			    high-scores)))
 
 (defmacro standard-page ((&key title page-scripts) &body body)
   `(with-html-output-to-string (*standard-output* nil :prologue t :indent t)
@@ -61,7 +41,16 @@
              (:title ,title)
              (:link :type "text/css"
                     :rel "stylesheet"
-                    :href "styles/style.css")
+	     	    :media "screen and (min-width: 51em)"
+                    :href "styles/desktop.css")
+             (:link :type "text/css"
+                    :rel "stylesheet"
+		    :media "screen and (min-width: 31em) and (max-width: 50.99em)"
+                    :href "styles/tablet.css")
+	     (:link :type "text/css"
+                    :rel "stylesheet"
+	     	    :media "screen and (max-width: 30.99em)"
+                    :href "styles/mobile.css")
              (:link :type "text/css"
                     :rel "stylesheet"
                     :href "styles/jquery-ui-1.10.2.custom.css"))
@@ -72,26 +61,17 @@
 	       (:nav
 		(:ul
 		 (:li (:a :href "/" "Etusivu"))
-		 ;; (:li (:a :href "js-simple" "Javascript-simppelit"))
-		 ;; (:li (:a :href "js-canvas" "Javascript-canvas"))
 		 (:li (:a :href "boggle-clone" "Sanapeli")))))
 	      ,@body)
-	     (:script :type "text/javascript"
+	     (:script :type "application/javascript"
 		      :src "scripts/jquery-1.9.1.js")
-	     (:script :type "text/javascript"
+	     (:script :type "application/javascript"
 		      :src "scripts/jquery-ui.js")
-	     (:script :type "text/javascript"
+	     (:script :type "application/javascript"
 		      :src "scripts/ui.datepicker-fi.js")
-	     (:script :type "text/javascript"
+	     (:script :type "application/javascript"
 		      :src "scripts/code.js")            	    
 	     ,page-scripts))))
-
-;;(defparameter *ajax-processor*
-;;  (make-instance 'ht-simple-ajax:ajax-processor :server-uri "/ajax"))
-;;  (make-instance 'ajax-processor :server-uri "/ajax"))
-
-;;(ht-simple-ajax:defun-ajax say-Hi (name) (*ajax-processor*)
-;;  (concatenate 'string "Hi " name ", nice to meet you."))
 
 (defun start-server ()
   (handler-case
@@ -116,7 +96,9 @@
 
 (setq *dispatch-table*
       (list
-       (create-regex-dispatcher "^/styles/style.css" 'controller-css)
+       (create-regex-dispatcher "^/styles/desktop.css" 'controller-css-desktop)
+       (create-regex-dispatcher "^/styles/tablet.css" 'controller-css-tablet)
+       (create-regex-dispatcher "^/styles/mobile.css" 'controller-css-mobile)
        (create-regex-dispatcher "^/scripts/code.js" 'controller-js-code)
        (create-regex-dispatcher "^/scripts/boggle-clone.js" 'boggle-clone-js)
        (create-regex-dispatcher "^/$" 'controller-main-page)
@@ -126,12 +108,6 @@
        (create-regex-dispatcher "^/check-word" 'controller-check-word)
        (create-regex-dispatcher "^/computer-score" 'controller-computer-score)
        (create-regex-dispatcher "^/save-high-score" 'controller-save-high-score)))
-;       (create-regex-dispatcher "^/grammatical-case-game" 'controller-grammatical-case-game)))
-       
-;;      (ht-simple-ajax:create-ajax-dispatcher *ajax-processor*)))
-
-
-  
 
 (defun controller-main-page ()
   (standard-page (:title "Juho Antti Heinosen kotisivut")
@@ -167,24 +143,24 @@
       (clsql:connect "scores.db" :database-type :sqlite3))
 
   (let (( all-scores (clsql:query "select player_name, points, longest_word, timestamp from high_score")))
-  
-  ;; (let (( all-scores (clsql:select [player-name] [points] [longest-word] [timestamp] 
-  ;; 					 :from [high-score]
-  ;; 					 :flatp t)))
-  (clsql:disconnect :database "scores.db")
-  
-  (setf all-scores (sort all-scores #'(lambda (x y)	
-		   (if (not (numberp (second x)))
-		       (setf (second x) (or (parse-integer (second x) :junk-allowed t) 0)))
-		   (if (not (numberp (second y)))
-		       (setf (second y) (or (parse-integer (second y) :junk-allowed t) 0)))
-		   (> (second x) (second y)))))
+    
+    ;; (let (( all-scores (clsql:select [player-name] [points] [longest-word] [timestamp] 
+    ;; 					 :from [high-score]
+    ;; 					 :flatp t)))
+    (clsql:disconnect :database "scores.db")
+    
+    (setf all-scores (sort all-scores #'(lambda (x y)	
+					  (if (not (numberp (second x)))
+					      (setf (second x) (or (parse-integer (second x) :junk-allowed t) 0)))
+					  (if (not (numberp (second y)))
+					      (setf (second y) (or (parse-integer (second y) :junk-allowed t) 0)))
+					  (> (second x) (second y)))))
 
-  (loop :repeat 10 :for score-item :in all-scores :collect score-item)))
+    (loop :repeat 10 :for score-item :in all-scores :collect score-item)))
 
-  ;; (sort all-scores #'(lambda (x y) 
-  
-  ;; ))
+;; (sort all-scores #'(lambda (x y) 
+
+;; ))
 
 ;; (let ((sorted-scores	 
 ;; 	 (sort (copy-list (elephant:get-instances-by-class 'high-score))

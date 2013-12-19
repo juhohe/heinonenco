@@ -15,37 +15,28 @@
 
     ($$ (document ready) (create-boggle))
 
-    ;;((chain ($ document) ready) (lambda () (create-boggle)))
-    
+    ;; TODO: Reorders the sequence given as parameter randomly.
     (defun random-shuffle (sequence)
       (let ((randomized (list))
 	    (n (length sequence)))
-      
-	(while (> n 0)
+     	(while (> n 0)
 	  (setf randomized (append (chain sequence (splice (random n) 1))randomized))
 	  (setf n (1- n))))
       randomized)
-    
+
+    ;; Formats seconds to mm:ss.
     (defun seconds-to-mm-ss (time-in-seconds)
       (defvar minutes (floor (/ *count* 60)))
       (defvar seconds (- time-in-seconds (* 60 minutes)))
       (stringify minutes ":" seconds))
 
+    ;; Inserts commas between words found by the computer.
     (defun pretty-print-computers-words()
       (let ((words (chain *computers-words* (to-string))))	
 	(chain words (replace (regex "/,/gi") ", "))))
 
-    ;; (defun wait-for-element ()
-    ;;   (if (eql (typeof *computers-points*) undefined)
-    ;; 	  (set-timeout (lambda ()
-    ;; 			 (wait-for-element))250)))
-
+    ;; Displays the game over dialog.
     (defun show-score-dialog ()
-      ;; (while (equal *computers-points* undefined)
-      ;; 	(chain console (log "moro")))
-      
-;;     (wait-for-element)
-       
       ((chain ($ "#sDialogScore") html)
        (stringify "<p>Peli päättyi. Löysit " 
 		  (length *found-words*) 
@@ -58,7 +49,7 @@
 		  "Sanat olivat seuraavat:</br></br> "
 		  (pretty-print-computers-words)
 		  "</p>"))
-
+      ;; Checks if the player achieved a place in top 10.
       (cond 
 	((and 
 	  (> *points* 0)
@@ -69,31 +60,32 @@
 	 ($$$ ("#dGetNameForHighScore" (show)))
 	 ($$$ ("[name='points']" (val *points*)))
 	 ($$$ ("[name='longest-word']" (val get-longest-word)))))
-      (chain ($ "#dialogScore") (dialog (create "width" 500))))
+      ($$ ("#dialogScore" (dialog (create "width" 500)))))
     
+    ;; Sends a request to the server to find automatically words from the grid
+    ;; and get find out how many points computer would have got.
     (defun get-computers-points ()
       (chain (chain ((chain $ ajax) (create type "post" 
     				     url "computer-score"
-;;    				     async false
     				     data (create grid-string *grid-string*)))
     		    (done (lambda (results)
 			    (setf result-array (chain *json* (parse results)))
     			    (setf *computers-points* (chain result-array (shift)))
     			    (setf *computers-words* result-array)
 			    (chain ($ "#btnEndGame") (attr "disabled" nil)))))))
-    (defun handle-game-end ()
-      ;; (alert (stringify "Peli päättyi. Löysit " (length *found-words*) " sanaa ja sait " *points* " pistettä. Aloitetaan uusi peli, kun painat ok."))
 
-      (clear-grid)
-;;      (chain ($ ".dBoggle") (off "click"))
+    ;; Disables the Boggle game in such a way that keypress and mouse click events
+    ;; won't work. TODO: finish this function, not all handlers are off.
+    (defun disable-grid ()
       (chain (chain ($ ".dBoggle") (remove-class "dBoggle")) (add-class "boggleDisabled"))      
-
       (chain ($ ".boggleControl") (attr "disabled" "disabled"))
-     
-      (chain ($ "#btnEndGame") (attr "disabled" "disabled"))
+      ($$$ ("#btnEndGame" (attr "disabled" "disabled")))
+      ($$$ (document (off "keypress"))))
 
-;;      (get-computers-points)
-
+    ;; Deals with the events happening in the end of the game.
+    (defun handle-game-end ()
+      (clear-grid)
+      (disable-grid)
       (show-score-dialog))
 
     (defun timer ()
@@ -104,50 +96,84 @@
 	(t ((@ ($ "#sTimeLeft") html)
 	    (seconds-to-mm-ss *count*))	   
 	   (setf *counter* (set-timeout timer 1000)))))
-
+    
     (defun mark-un-selectable (x y)
       ((chain ((chain (chain ($ ".dBoggle") remove-class)) "dBoggle") add-class) "boggleDisabled")
       (chain ((chain (chain ($ ".boggleDisabled") filter))
-	      (chain (chain (lambda()
-			      (and 
-			       (or
-				(eq ((chain ($ this) data) "x") (1- x))
-				(eq ((chain ($ this) data) "x")  x)
-				(eq ((chain ($ this) data) "x") (1+ x)))
-			       (or
-				(eq ((chain ($ this) data) "y") (1- y))
-				(eq ((chain ($ this) data) "y")  y)
-				(eq ((chain ($ this) data) "y") (1+ y)))
-			       )))))
-	     (remove-class "boggleDisabled") (add-class "dBoggle")))
+              (chain (chain (lambda()
+                              (and 
+                               (or
+                                (eq ((chain ($ this) data) "x") (1- x))
+                                (eq ((chain ($ this) data) "x")  x)
+                                (eq ((chain ($ this) data) "x") (1+ x)))
+                               (or
+                                (eq ((chain ($ this) data) "y") (1- y))
+                                (eq ((chain ($ this) data) "y")  y)
+                                (eq ((chain ($ this) data) "y") (1+ y)))
+                               )))))
+             (remove-class "boggleDisabled") (add-class "dBoggle")))
+    
+      ;; (chain ((chain (chain ($ ".boggleDisabled") filter))
+      ;; 	      (chain (chain (lambda()
+      ;; 			      ((let ((data-x ($$$ (this (data "x"))))
+      ;; 				    (data-y ($$$ (this (data "y")))))
+      ;; 				(= (data-x (1- x)))))))))))
+
+    ;; If letter is pressed, marking possible sites for the next character.
+    ;; If only one possible place for the character is found, selecting it as 
+    ;; the next character to the word.
+    (defun letter-pressed (keycode)
+      (let ((character (chain -string (from-char-code keycode)))
+	    (found-tiles (list)))
+	($$ (".dBoggle" each)
+	  (cond ((equal ((chain (chain ($ this) (text)) to-lower-case)) character)
+		 ($$$ (this (add-class "bogglePossible")))
+		 (setf found-tiles (append found-tiles (@ ($ this)))))))
+	(case (length found-tiles)
+	  (0 nil)
+	  ;; If just one applicable tile found, selecting it as the next letter.
+	  (1 (tile-selected (getprop found-tiles 0)))
+	  ;; If many possible tile-paths are found, getting their adjacent
+	  ;; possible tiles.
+	  (otherwise "many tiles found"))))
 
     (defun boggle-click-handler()
-      ;; Triggering word check if pressed space or enter.
-      (chain ($ document)
-	     (keypress
-	      (lambda (e)
-		(if (or (= (chain e which) 32) (= (chain e which) 13))
-		    ($$$ ("#btnCheckWord" (trigger "click")))))))
-
-
-
-      (chain ($ ".dBoggle")
+      ($$$ (document 
+	    (keypress
+	     (lambda (e)
+	       (let ((clicked-key (@ e which)))
+		 (cond
+		   ;; Triggering word check if pressed space or enter.
+		   ((or (= clicked-key 32) (= clicked-key 13))
+		    ($$$ ("#btnCheckWord" (trigger "click"))))
+		   ;; Getting letters ä and ö.
+		   ((or (= clicked-key 228) (= clicked-key 246)
+			(and (>= clicked-key 97) (<= clicked-key 122)))
+		    (letter-pressed clicked-key))))))))			 		     		     	
+      ;; Handling clicking on a letter with the left mouse key,
+      ;; or sending the word for checking with other mouse keys.
+      ($$$ (".dBoggle"
 	     (mousedown
 	      (lambda (event)
-		(cond 
+		(cond
 		  ((= (chain event which) 1)
-		   (let ((selectedLetter ((@ ($ this) html)))
-			 (is-not-selected (@ (( @ ($ this) has-class) "dBoggle"))))
-		     (cond (is-not-selected
-			    ((chain ((chain ($ this) add-class) "boggleSelected") remove-class) "dBoggle")
-			    ((@ ($ "#dGotLetters") append) selectedletter)
-			    (mark-un-selectable ((@ ($ this) data) "x") ((@ ($ this) data) "y"))))))
+		   (let ((element (@ ($ this))))
+		     (tile-selected element)))		 
 		  ;; Checking word if not the leftmost mouse button clicked.
 		  (t
-		   (chain ($ "#btnCheckWord") (trigger "click"))))))))
+		   ($$$ ("#btnCheckWord" (trigger "click"))))))))))
+
+    ;; Handles confirming the selection of a tile.
+    (defun tile-selected (element)
+      (let ((selectedLetter ((@ element html)))
+	    (is-not-selected ((@ element has-class) "dBoggle")))
+	(cond (is-not-selected	       
+	       ((@ ((@ element add-class) "boggleSelected") remove-class) "dBoggle")
+	((@ ($ "#dGotLetters") append) selectedletter)
+    (mark-un-selectable ((@ element data) "x") ((@ element data) "y"))))))
 
       (defun clear-grid ()
-	((chain ((chain (chain ($ ".boggleSelected, .boggleDisabled") remove-class)) "boggleSelected boggleDisabled") add-class) "dBoggle"))
+	((chain ((chain (chain ($ ".boggleSelected, .boggleDisabled") remove-class)) "boggleSelected boggleDisabled bogglePossible") add-class) "dBoggle"))
 
       (defun boggleClearWordClickHandler ()
 	(
@@ -160,7 +186,6 @@
       (defun boggleStartOverClickHandler ()
 	(
 	 (@ ($ "#btnStartOver") click)
-	 ;;	 (chain (chain window location) (reload)))
 	 (lambda ()
 	   (chain (chain window location) (reload)))))     
 
