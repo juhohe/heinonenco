@@ -25,9 +25,9 @@
            (:button :id "btnCheckWord" :class "boggleControl gameButton" :style "display: inline"
                     "Tarkista sana")
 	   (:button :id "btnClearWord" :class "boggleControl gameButton"  "Tyhjennä valinta")
-	   (:button :id "btnEndGame gameButton" :disabled t  "Lopeta peli etuajassa")
+	   (:button :id "btnEndGame" :class "gameButton" :disabled t  "Lopeta peli etuajassa")
 
-	   (:button :id "btnStartOver gameButton" :class "boggleControl" "Aloita uusi peli")
+	   (:button :id "btnStartOver" :class "boggleControl gameButton" "Aloita uusi peli")
 	   (:br)
 	   (:span :id "dGotLettersLabel" :style "display:inline;" "Valitut kirjaimet: ")
 	   (:div :id "dGotLetters" :style "display:inline-block;"))
