@@ -60,8 +60,9 @@
 	 ($$$ ("#dGetNameForHighScore" (show)))
 	 ($$$ ("[name='points']" (val *points*)))
 	 ($$$ ("[name='longest-word']" (val get-longest-word)))))
-      ($$ ("#dialogScore" (dialog (create "width" 500)))))
-    
+;;      ($$ ("#dialogScore" (dialog (create "width" 500)))))      
+      (chain ($ "#dialogScore") (dialog (create "width" 500))))
+
     ;; Sends a request to the server to find automatically words from the grid
     ;; and get find out how many points computer would have got.
     (defun get-computers-points ()
