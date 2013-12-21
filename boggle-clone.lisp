@@ -22,10 +22,10 @@
     (:article
      (:h1 "Sanapeli")
      (:div :id "dWordGameControls"
-           (:button :id "btnCheckWord" :class "boggleControl gameButton" :style "display: inline"
+           (:button :id "btnCheckWord" :class "boggleControl gameButton"
                     "Tarkista sana")
 	   (:button :id "btnClearWord" :class "boggleControl gameButton"  "Tyhjennä valinta")
-	   (:button :id "btnEndGame" :class "gameButton" :disabled t  "Lopeta peli etuajassa")
+	   (:button :id "btnEndGame" :class "boggleControl gameButton" :disabled t  "Lopeta etuajassa")
 
 	   (:button :id "btnStartOver" :class "boggleControl gameButton" "Aloita uusi peli")
 	   (:br)
@@ -56,7 +56,7 @@
      (:div :id "dRightSide"
 	   (:div :id "dInstructions"
 		 (:h2 "Peliohjeet")
-		 (:p "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanoja kerätään siten, että valitaan hiirellä napauttamalla vierekkäin sijaitsevia kirjaimia ja täten muodostetaan kirjaimista sanoja. Sana lähetetään tarkistettavaksi painamalla hiiren kakkos- tai kolmospainiketta tai klikkaamalla \"Tarkista sana\"-painiketta.")
+		 (:p "Pelissä on tavoitteena kerätä mahdollisimman paljon sanoja. Sanoja kerätään siten, että valitaan hiirellä napauttamalla vierekkäin sijaitsevia kirjaimia ja täten muodostetaan kirjaimista sanoja. Sana lähetetään tarkistettavaksi painamalla hiiren kakkos- tai kolmospainiketta, painamalla enteriä tai välilyöntiä tai klikkaamalla \"Tarkista sana\"-painiketta.")
 
 		 (:p "Sanojen pituuden pitää olla vähintään 3 kirjainta. 3 ja 4 kirjaimen pituisista sanoista saa yhden pisteen, sitä pitemmistä sanoista saa yhden lisäpisteen jokaisesta neljän kirjaimen jälkeen tulevasta kirjaimesta. Verbeistä hyväksytään vain persoonattomat muodot. Nomineista (esim. pronomineista ja substantiiveista) hyväksytään yksikön ja monikon nominatiivit. Erisnimiä ei hyväksytä. Useimmat partikkelit hyväksytään. Huudahdussanoja (esim. \"seis\" ja \"morjens\") ei hyväksytä."))
 	   

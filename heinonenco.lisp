@@ -113,7 +113,7 @@
   (standard-page (:title "Juho Antti Heinosen kotisivut")
     (:article
      (:h1 "Tervetuloa kotisivuilleni!")
-     (:p "Olen kiinnostunut Lisp-ohjelmoinnista. Näillä sivuilla on siihen liittyviä harjoitustöitäni."))))
+     (:p "Koetan tuoda tänne jotakin mielekästä aineistoa. Toistaiseksi on vain Boggle-pelin säännöillä pelattava sanapeli."))))
 
 (defun controller-404 ()
   (standard-page (:title "Virhe 404 - sivua ei löytynyt")

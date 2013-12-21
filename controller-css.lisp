@@ -9,7 +9,11 @@
 	(body-padding "0em 2em 2em 2em")
 	(game-button-width "auto")
 	(game-button-height "auto")
-	(game-button-font-size "normal"))
+	(game-button-font-size "normal")
+	(link-text-size "x-large")
+	(nav-display-style "inline")
+	(game-controls-min-width "auto"))
+    
     
     ;; Setting some parts 
     (cond
@@ -18,18 +22,21 @@
        (setf body-min-width "15em")
        (setf lisp-alien-img "none")
        (setf body-padding "0 1em 1em 1em")
-       (setf game-button-width "7em")
-       (setf game-button-height "7em")
-       (setf game-button-font-size "Huge"))
+       (setf game-button-width "5em")
+       (setf game-button-height "5em")
+       (setf game-button-font-size "x-large")
+       (setf game-controls-min-width "520px"))
       
       ((eq screen-type 'mobile)
        (setf body-width "97%")
        (setf body-min-width "10em")
        (setf lisp-alien-img "none")
        (setf body-padding "0 1em 1em 1em")
-       (setf game-button-width "1em")
-       (setf game-button-height "1em")
-       (setf game-button-font-size "Large")))
+       ;; (setf game-button-width "3em")
+       ;; (setf game-button-height "3em")
+       ;; (setf game-button-font-size "normal")
+       (setf link-text-size "large")
+       (setf nav-display-style "block")))
     
     (css-lite:css
       (("body")
@@ -57,9 +64,10 @@
 	 		    :border-radius "1em")
 	 
 	 (("h1")
-	  (:font-size "100%" :text-align "left" :font-family "Comic Sans MS"
+	  (:font-size "x-large" :text-align "left" :font-family "Comic Sans MS"
 		      :font-style "italic"
 		      :width "30%"
+		      :min-width "5em"
 		      :border-style "solid"
 		      :border-color "rgb(0,0,0)"
 		      :border-width "1px"
@@ -74,14 +82,14 @@
 	  (:float "right"))
 	 (("nav")
 	  (:text-align "center"
-		       :font-size "150%"
+		       :font-size link-text-size ;;"x-large"
 		       :width "75%"
 		       :margin "0.7em auto 1em 1.3em"
 		       :border-style "solid"
 		       :border-width "1px"
 		       :border-radius "0.5em"))
 	 (("nav ul li")
-	  (:display "inline" :margin "1em")
+	  (:display nav-display-style :margin "1em")
 	  ((":hover")
 	   (:color "rgb(240,240,240)"
 		   :text-decoration "underline"
@@ -100,12 +108,16 @@
       ((".dWordGame")
        (:margin "0 auto 0 auto" :display "inline-block"))
 
+      (("#dWordGameControls")
+       (:min-width "500px"
+		   :overflow "hidden"))
+
       ((".gameButton")
        (:height game-button-height :width game-button-width
 		:font-size game-button-font-size))
 
       (("#dGameGrid")
-       (:display "inline" :width "50%"))
+       (:display "inline"))
       (("#dRightSide")
        (:display "inline-block"))
       
@@ -121,10 +133,12 @@
        (:background-color "rgb(200, 200, 200)"))
       (("button")
        (:cursor "pointer"))
+      ;; (("#tblBoggle")
+      ;;  (:width "50%"))
       (("#btnStartOver")
        (:float "right" :margin-right "5%"))
       (("#tblHighScores")
-       (:width "70%"))
+       (:width "80%" :min-width "12em"))
       (("#tblHighScores th")
        (:text-align "left" :font-weight "Bold"))
       (("#sDialogScore span")
